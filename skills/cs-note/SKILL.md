@@ -1,6 +1,6 @@
 ---
 name: cs-note
-description: "Add one durable attention rule that every project session must read. Invoke explicitly when a short rule belongs in `.codestable/attention.md`."
+description: "Attention rule. Invoke explicitly when one durable, per-session rule belongs in `.codestable/attention.md`."
 disable-model-invocation: true
 argument-hint: "<one durable rule>"
 ---

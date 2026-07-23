@@ -19,9 +19,37 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from feedback_incidents import build_incident_payload, public_incident  # noqa: E402
 from feedback_models import PUBLIC_INCIDENT_FIELDS  # noqa: E402
+from feedback_privacy import (  # noqa: E402
+    public_projection_hash,
+    render_public_issue,
+)
 from feedback_repo_context import session_label  # noqa: E402
 from feedback_transcripts import discover_files, provider_from_path, read_transcript_snapshot, session_id_from  # noqa: E402
 from feedback_triage import build_triage, merge_existing_triage  # noqa: E402
+
+
+def _load_capture_anchor(path: Path) -> dict[str, str] | None:
+    """Keep a selected incident bound to the same transcript cutoff on reruns."""
+    anchor_path = path.with_name("capture-anchor.json")
+    if not anchor_path.exists():
+        return None
+    try:
+        loaded = json.loads(anchor_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    session = loaded.get("session")
+    cutoff = loaded.get("cutoff")
+    return {"session": str(session), "cutoff": str(cutoff)} if session and cutoff else None
+
+
+def _write_capture_anchor(path: Path, session: str, cutoff: str) -> None:
+    anchor_path = path.with_name("capture-anchor.json")
+    anchor_path.write_text(
+        json.dumps({"session": session, "cutoff": cutoff}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def _load_existing_triage(path: Path) -> dict[str, Any] | None:
@@ -71,9 +99,11 @@ def main_with_args_for_test(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, help="Private evidence JSON")
     parser.add_argument("--triage-output", help="Private triage JSON")
     parser.add_argument("--public-output", help="Public allowlist JSON")
+    parser.add_argument("--issue-body-output", help="Approved public issue body")
     parser.add_argument("--history-root", help="Override home directory for tests")
     parser.add_argument("--cwd", help="Current repository, required by --session current")
     parser.add_argument("--incident", help="Explicit incident id when several are found")
+    parser.add_argument("--approve-public-preview", action="store_true", help="Approve the current public projection for publishing")
     args = parser.parse_args(argv)
 
     output = Path(args.output).expanduser()
@@ -109,12 +139,31 @@ def main_with_args_for_test(argv: list[str] | None = None) -> int:
     for path in files:
         records_by_path[path], captures_by_path[path] = read_transcript_snapshot(path)
 
+    anchor = _load_capture_anchor(output)
     incidents, primary = build_incident_payload(files, args.feedback, cwd, records_by_path, captures_by_path)
+    if anchor and not args.incident:
+        primary = next(
+            (
+                item for item in incidents
+                if item.get("capture_cutoff") == anchor["cutoff"]
+                and isinstance(item.get("environment_context"), dict)
+                and item["environment_context"].get("session") == anchor["session"]
+            ),
+            None,
+        )
     if args.incident:
         primary = next((item for item in incidents if item.get("id") == args.incident), None)
         if primary is None:
             print(f"incident selection blocked: {args.incident} not found", file=sys.stderr)
             return 2
+    if primary and (not anchor or args.incident):
+        anchor = {
+            "session": str(
+                primary.get("environment_context", {}).get("session") or "unknown"
+            ),
+            "cutoff": str(primary.get("capture_cutoff") or "unknown"),
+        }
+        _write_capture_anchor(output, anchor["session"], anchor["cutoff"])
     generated = build_triage(incidents, primary)
     try:
         triage = merge_existing_triage(generated, existing_triage)
@@ -124,12 +173,25 @@ def main_with_args_for_test(argv: list[str] | None = None) -> int:
 
     quality = triage.get("quality") if isinstance(triage.get("quality"), dict) else {}
     public_incidents = [public_incident(primary, triage)] if primary and quality.get("triage_ready") is True else []
-    public_issue_context = {
+    projection = {
         "privacy": "public-preview",
         "source": "derived-from-local-private-evidence",
         "allowed_fields": PUBLIC_INCIDENT_FIELDS,
         "incidents": public_incidents,
     }
+    projection_hash = public_projection_hash(projection)
+    if args.approve_public_preview:
+        if not public_incidents:
+            print("public preview approval blocked: triage is not ready", file=sys.stderr)
+            return 2
+        triage["privacy_review"] = {
+            "status": "approved",
+            "projection_hash": projection_hash,
+            "notes": "approved by user for this exact projection",
+        }
+    elif triage.get("privacy_review", {}).get("projection_hash") != projection_hash:
+        triage["privacy_review"] = {"status": "pending", "projection_hash": "", "notes": "projection changed"}
+    public_issue_context = {**projection, "projection_hash": projection_hash, "privacy_review": triage["privacy_review"]}
     payload = {
         "schema_version": 3,
         "feedback": args.feedback,
@@ -140,6 +202,10 @@ def main_with_args_for_test(argv: list[str] | None = None) -> int:
         "since_days": args.since_days,
         "history_root": str(home),
         "cwd": cwd,
+        "capture_anchor": anchor or {
+            "session": str(primary.get("environment_context", {}).get("session") if primary else "unknown"),
+            "cutoff": str(primary.get("capture_cutoff") if primary else "unknown"),
+        },
         "searched_files": [str(path) for path in files],
         "captures": [
             {
@@ -151,14 +217,23 @@ def main_with_args_for_test(argv: list[str] | None = None) -> int:
         ],
         "incidents": incidents,
     }
-    try:
-        _write_text_files_atomically(
-            [
-                (triage_output, json.dumps(triage, ensure_ascii=False, indent=2) + "\n"),
-                (output, json.dumps(payload, ensure_ascii=False, indent=2) + "\n"),
-                (public_output, json.dumps(public_issue_context, ensure_ascii=False, indent=2) + "\n"),
-            ]
+    outputs = [
+        (triage_output, json.dumps(triage, ensure_ascii=False, indent=2) + "\n"),
+        (output, json.dumps(payload, ensure_ascii=False, indent=2) + "\n"),
+        (public_output, json.dumps(public_issue_context, ensure_ascii=False, indent=2) + "\n"),
+    ]
+    if args.approve_public_preview:
+        issue_body_output = (
+            Path(args.issue_body_output).expanduser()
+            if args.issue_body_output
+            else output.with_name("github-issue.md")
         )
+        if issue_body_output.resolve() in resolved:
+            print("feedback output blocked: issue body path must be distinct", file=sys.stderr)
+            return 2
+        outputs.append((issue_body_output, render_public_issue(public_issue_context)))
+    try:
+        _write_text_files_atomically(outputs)
     except OSError as exc:
         print(f"feedback output blocked: {exc}", file=sys.stderr)
         return 2

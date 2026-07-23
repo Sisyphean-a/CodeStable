@@ -6,7 +6,7 @@ argument-hint: "<idea or uncertainty>"
 
 # Diverge and converge
 
-Turn an unclear idea into a chosen direction or a sharply stated unknown. This skill explores; it does not implement or create project workflow artifacts.
+Turn an unclear idea into a chosen direction or a sharply stated unknown. The user's final choice or named unknown is the run's single conclusion; earlier options remain alternatives, not competing decisions. This skill explores; it does not implement or create project workflow artifacts.
 
 ## Steps
 

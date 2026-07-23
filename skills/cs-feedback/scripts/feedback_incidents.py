@@ -113,26 +113,27 @@ def _trigger_cutoff(records: list[NormalizedRecord]) -> int | None:
     return None
 
 
-def records_through_trigger(path: Path, records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    normalized = normalize_records(path, records)
-    cutoff = _trigger_cutoff(normalized)
-    if cutoff is None:
-        return records
-    return records[: normalized[cutoff].source_index + 1]
-
-
 def public_incident(incident: dict[str, object], triage: dict[str, object]) -> dict[str, str]:
     assessment = triage.get("assessment", {}) if isinstance(triage.get("assessment"), dict) else {}
+    repo_context = incident.get("repo_context") if isinstance(incident.get("repo_context"), dict) else {}
+    private_tokens = {
+        str(token)
+        for token in repo_context.get("private_tokens", [])
+        if isinstance(token, str)
+    }
+
+    def redact_public(text: object) -> str:
+        return public_redact(str(text or "unknown"), private_tokens=private_tokens)
 
     def value(name: str) -> str:
         item = assessment.get(name, {})
         if isinstance(item, dict):
-            return public_redact(str(item.get("value") or "unknown"))
+            return redact_public(item.get("value"))
         return "unknown"
 
     projected = {
-        "incident_kind": public_redact(str(incident.get("incident_kind") or "unknown")),
-        "target_skill": public_redact(str(incident.get("target_skill") or "unknown")),
+        "incident_kind": redact_public(incident.get("incident_kind")),
+        "target_skill": redact_public(incident.get("target_skill")),
         "expected_behavior": value("expected_behavior"),
         "actual_behavior": value("actual_behavior"),
         "impact": value("impact"),

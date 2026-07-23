@@ -14,7 +14,7 @@ A new desired capability is a feature. A structure-only change with preserved ob
 
 ## Steps
 
-1. **Reproduce.** Load the relevant scoped current state and history, then reproduce the symptom or establish an equivalent failing observation. Complete when the failure, expected contract, and evidence gap are explicit.
+1. **Reproduce.** Load the relevant scoped current state, then reproduce the symptom or establish an equivalent failing observation. Retrieve a history fragment only when a concrete keyword, code anchor, or conflict requires its reason. Complete when the failure, expected contract, and evidence gap are explicit.
 2. **Prove.** Trace the failure to a cause that explains all observed symptoms. Complete when changing that cause predicts the reproduction will pass; if reproduction is impossible, report the missing evidence instead of claiming a diagnosis.
 3. **Repair.** Fix the cause and add or adjust the narrowest durable regression check. Complete when the original reproduction passes and the symptom is not merely masked.
 4. **Verify.** Run affected regression and contract checks. Complete when fresh evidence covers the repair's blast radius and no known required path remains failing.

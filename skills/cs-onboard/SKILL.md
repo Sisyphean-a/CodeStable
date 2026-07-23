@@ -1,6 +1,6 @@
 ---
 name: cs-onboard
-description: "Scaffold CodeStable project memory in a repository, or migrate an existing `.codestable` collection to the current-state architecture, requirements, and history model."
+description: "Scaffold project memory, or migrate an existing `.codestable` collection to the current-state architecture, requirements, and history model."
 argument-hint: "[scaffold|migrate] [scope]"
 ---
 

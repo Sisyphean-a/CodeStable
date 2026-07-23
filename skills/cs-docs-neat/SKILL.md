@@ -7,7 +7,7 @@ argument-hint: "<workspace or package scope>"
 
 # Prune project memory
 
-The result of cleanup is a smaller, more accurate default working set, not a cleanup report.
+The result is a smaller, more accurate default working set.
 
 ## Steps
 

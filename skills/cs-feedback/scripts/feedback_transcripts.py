@@ -48,20 +48,6 @@ def event_text(record: dict[str, Any]) -> str:
     return flatten(payload)
 
 
-def event_kind(record: dict[str, Any]) -> str:
-    payload = record.get("payload")
-    if isinstance(payload, dict):
-        for key in ("type", "name", "role"):
-            if payload.get(key):
-                return str(payload[key])
-    message = record.get("message")
-    if isinstance(message, dict):
-        for key in ("type", "name", "role"):
-            if message.get(key):
-                return str(message[key])
-    return str(record.get("type", record.get("role", "unknown")))
-
-
 def normalize_json_records(value: Any) -> list[dict[str, Any]]:
     if isinstance(value, list):
         return [item if isinstance(item, dict) else {"payload": item} for item in value]
@@ -116,11 +102,6 @@ def read_transcript_snapshot(path: Path) -> tuple[list[dict[str, Any]], dict[str
         "byte_length": len(raw),
         "complete_record_eof": complete_record_eof,
     }
-
-
-def read_records(path: Path) -> list[dict[str, Any]]:
-    records, _capture = read_transcript_snapshot(path)
-    return records
 
 
 def _session_id_from_record(record: dict[str, Any]) -> str:
@@ -202,14 +183,6 @@ def session_id_from(path: Path, records: list[dict[str, Any]]) -> str:
         if session_id:
             return session_id
     return path.stem
-
-
-def cwd_from(records: list[dict[str, Any]]) -> str:
-    for record in records:
-        cwd = _cwd_from_record(record)
-        if cwd:
-            return cwd
-    return ""
 
 
 def provider_from_path(path: Path) -> str:

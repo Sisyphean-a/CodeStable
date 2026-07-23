@@ -49,12 +49,15 @@ def _git_output(root: Path, args: list[str]) -> str:
 
 def build_repo_context(cwd: str | None) -> dict[str, object]:
     if not cwd or not Path(cwd).is_dir():
-        return {"git_head": "unknown", "dirty_paths": []}
+        return {"git_head": "unknown", "dirty_paths": [], "private_tokens": []}
     root = _repo_root(Path(cwd))
     head = _git_output(root, ["rev-parse", "--short", "HEAD"]) or "unknown"
     status = _git_output(root, ["status", "--short", "--untracked-files=all"])
     dirty_paths = [line[3:] for line in status.splitlines()[:100] if len(line) >= 4]
-    return {"git_head": head, "dirty_paths": dirty_paths}
+    remote = _git_output(root, ["remote", "get-url", "origin"])
+    remote_name = Path(remote.removesuffix(".git")).name if remote else ""
+    private_tokens = sorted({token for token in (root.name, remote_name) if token})
+    return {"git_head": head, "dirty_paths": dirty_paths, "private_tokens": private_tokens}
 
 
 def environment_context(

@@ -1,6 +1,6 @@
 ---
 name: cs-keep
-description: "Preserve a reusable lesson in a user-selected cross-project knowledge base. Invoke explicitly when the user asks to keep a pitfall, technique, or research conclusion for reuse beyond this repository."
+description: "Reusable lesson. Invoke explicitly when the user asks to keep a pitfall, technique, or research conclusion for reuse beyond this repository."
 disable-model-invocation: true
 argument-hint: "<lesson and destination>"
 ---

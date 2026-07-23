@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 
 
@@ -17,6 +19,13 @@ PATH_SPACED_CONTINUATION_PATTERN = re.compile(
 )
 PATH_SPACED_WORD_PATTERN = re.compile(rf"[ \t]+({PATH_SEGMENT_PATTERN})")
 PATH_EXTENSION_PATTERN = re.compile(r"[\w+-]+")
+RELATIVE_CODE_PATH_PATTERN = re.compile(
+    r"(?i)(?<![A-Za-z0-9_.-])(?:src|app|lib|packages?|tests?|docs?|skills?|scripts?|components?|views?|composables?|services?)/"
+    r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*(?:\.(?:py|ts|tsx|js|jsx|vue|json|yaml|yml|md|css|scss|html))?"
+)
+CODE_FILENAME_PATTERN = re.compile(
+    r"(?i)(?<![A-Za-z0-9_.-])[A-Za-z0-9_-]+\.(?:py|ts|tsx|js|jsx|vue|json|yaml|yml|css|scss|html)(?![A-Za-z0-9_.-])"
+)
 CJK_PATH_GLUE_PATTERN = re.compile(
     r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff](?=[A-Za-z0-9_.+~-])"
 )
@@ -281,7 +290,50 @@ def redact_absolute_paths(text: str) -> str:
     return "".join(pieces)
 
 
-def public_redact(text: str, limit: int = 300) -> str:
+def public_projection_payload(context: dict[str, object]) -> dict[str, object]:
+    return {
+        "privacy": context.get("privacy"),
+        "source": context.get("source"),
+        "allowed_fields": context.get("allowed_fields"),
+        "incidents": context.get("incidents"),
+    }
+
+
+def public_projection_hash(context: dict[str, object]) -> str:
+    raw = json.dumps(
+        public_projection_payload(context),
+        ensure_ascii=False,
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def render_public_issue(context: dict[str, object]) -> str:
+    incidents = context.get("incidents")
+    if not isinstance(incidents, list) or len(incidents) != 1:
+        raise ValueError("public preview requires exactly one incident")
+    incident = incidents[0]
+    if not isinstance(incident, dict):
+        raise ValueError("public preview incident must be an object")
+    labels = (
+        ("Incident kind", "incident_kind"),
+        ("Target skill", "target_skill"),
+        ("Expected behavior", "expected_behavior"),
+        ("Actual behavior", "actual_behavior"),
+        ("Impact", "impact"),
+        ("Proposed fix", "proposed_fix"),
+    )
+    return "# CodeStable feedback\n\n" + "\n".join(
+        f"- **{label}:** {incident.get(key) or 'unknown'}"
+        for label, key in labels
+    ) + "\n"
+
+
+def public_redact(
+    text: str,
+    limit: int = 300,
+    private_tokens: set[str] | None = None,
+) -> str:
     text = re.sub(r"```.*?(?:```|\Z)", "<code-block>", text, flags=re.DOTALL)
     text = redact_credentials(text)
     text = re.sub(r"\s+", " ", text).strip()
@@ -293,6 +345,11 @@ def public_redact(text: str, limit: int = 300) -> str:
     text = redact_absolute_paths(text)
     text = EMAIL_PATTERN.sub("<email>", text)
     text = ENV_NAME_PATTERN.sub("<env-name>", text)
+    text = RELATIVE_CODE_PATH_PATTERN.sub("<private-reference>", text)
+    text = CODE_FILENAME_PATTERN.sub("<private-reference>", text)
+    for token in sorted(private_tokens or set(), key=len, reverse=True):
+        if len(token) >= 3:
+            text = re.sub(re.escape(token), "<private-repository>", text, flags=re.IGNORECASE)
     if len(text) > limit:
         return text[:limit] + "...<truncated>"
     return text
