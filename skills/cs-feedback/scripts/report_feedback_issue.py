@@ -149,8 +149,8 @@ def main_with_args_for_test(argv: list[str] | None = None) -> int:
     body_file = Path(args.body_file).expanduser()
     if not body_file.is_file():
         raise SystemExit(f"body file not found: {body_file}")
-    if body_file.name in {"evidence.json", "triage.json", "regression-candidate.json"}:
-        raise SystemExit(f"refusing to upload local-private {body_file.name}; use github-issue.md public preview")
+    if body_file.name in {"evidence.json", "triage.json", "public-issue-context.json"}:
+        raise SystemExit(f"refusing to upload data file {body_file.name}; use github-issue.md public preview")
     if body_file.suffix == ".json":
         try:
             payload = json.loads(body_file.read_text(encoding="utf-8"))
