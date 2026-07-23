@@ -1,1 +1,0 @@
-init: taskhub core — sqlite storage, task CRUD, cli skeleton
