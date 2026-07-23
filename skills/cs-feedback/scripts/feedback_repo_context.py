@@ -55,8 +55,10 @@ def build_repo_context(cwd: str | None) -> dict[str, object]:
     status = _git_output(root, ["status", "--short", "--untracked-files=all"])
     dirty_paths = [line[3:] for line in status.splitlines()[:100] if len(line) >= 4]
     remote = _git_output(root, ["remote", "get-url", "origin"])
-    remote_name = Path(remote.removesuffix(".git")).name if remote else ""
-    private_tokens = sorted({token for token in (root.name, remote_name) if token})
+    remote_clean = remote.removesuffix(".git")
+    remote_match = __import__("re").search(r"(?:[:/]([^/:]+/[^/]+))$", remote_clean)
+    remote_parts = remote_match.group(1).split("/") if remote_match else []
+    private_tokens = sorted({token for token in [root.name, *remote_parts] if token})
     return {"git_head": head, "dirty_paths": dirty_paths, "private_tokens": private_tokens}
 
 

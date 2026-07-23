@@ -1,23 +1,21 @@
 ---
 name: cs-epic
-description: "Capability decomposition. Use when a large or system-level outcome must be split into independently verifiable deliverables with explicit dependencies, or when that dependency map must be updated."
-argument-hint: "<large outcome>"
+description: "能力拆分。大型或系统级结果需要拆成可独立验证的交付项并明确依赖，或需要更新该依赖图时使用。"
+argument-hint: "<大型结果>"
 ---
 
-# Capability decomposition
+# 能力拆分
 
-Maintain the shape of a large outcome. Do not implement child work or run reviews from this skill.
+只维护大型结果的形状，不在本 skill 中实现子项或发起审查。
 
-## Steps
+## 步骤
 
-1. **Anchor.** Load the relevant scoped current state and state the overall outcome, non-goals, constraints, and evidence that will prove it complete. Complete when the boundary is testable rather than a theme.
-2. **Decompose.** Split by independently valuable or independently verifiable outcomes, not by files, teams, or workflow stages. Complete when every child has a result, scope, and completion evidence and no child merely says “review” or “integrate everything”.
-3. **Order.** Record hard dependencies and explain why each is hard. Replace coordination preferences with parallelism where contracts allow it. Complete when the dependency graph is acyclic and every root can start from current facts.
-4. **Persist minimally.** Keep the decomposition in the user's existing planning surface. If it reveals a stable architecture fact, update that fact's canonical INDEX, shared, or package page separately; a task decomposition is never an architecture page. Complete when the live map and each durable fact have one distinct owner.
-5. **Refresh.** When facts change, update outcomes and edges, remove completed planning detail, and append history only if the changed reason will affect future judgment. Complete when the map describes what remains, not a transcript of execution.
+1. **锚定。** 读取相关 scope 当前态，写明总体结果、非目标、约束和完成证据。**完成条件：边界可验证，不只是主题。**
+2. **拆分。** 按可独立产生价值或可独立验证的结果拆分，不按文件、团队或流程阶段拆。**完成条件：每个子项都有结果、scope 和证据，且没有“审查”或“最终集成”伪子项。**
+3. **排序。** 记录硬依赖及其理由；契约允许时把协作偏好改成并行。**完成条件：依赖图无环，每个根节点都能从当前事实开始。**
+4. **最小持久化。** 拆解写入用户已有规划面，不写 architecture 任务页。**完成条件：活动地图只有一个 owner。** 若拆解暴露稳定架构事实，才按其权威 INDEX/shared/package 位置更新，并只在该分支读取[项目记忆模型](../cs-domain/references/memory-model.md)。
+5. **刷新。** 事实变化时更新结果和依赖、删除已完成规划细节；只有变化原因影响未来判断才写 history。**完成条件：地图描述剩余工作，不是执行流水账。**
 
-Use [the canonical memory model](../cs-domain/references/memory-model.md) for any `.codestable` write.
+## 完成条件
 
-## Completion
-
-The overall outcome and non-goals are explicit, every child is independently verifiable, the dependency graph is sound, and no child implementation, batch design, review, or goal driver was started.
+总体结果和非目标明确，子项可独立验证，依赖图正确，且未启动子项实现、批量设计、审查或目标驱动。

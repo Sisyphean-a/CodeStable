@@ -1,22 +1,22 @@
 ---
 name: cs-code-review
-description: "Adversarial code review. Use when the user explicitly requests review of a diff, or when a security, data, production, irreversible-effect, or core-protocol change requires independent review."
-argument-hint: "<diff, branch, commit, or paths>"
+description: "对抗审查。用户明确要求审查 diff，或安全、数据、生产、不可逆影响、核心协议变更需要独立审查时使用。"
+argument-hint: "<diff、分支、提交或路径>"
 ---
 
-# Adversarial code review
+# 对抗审查
 
-Review the final change as a read-only critic. Do not implement fixes in the same review run.
+以只读批评者身份审查最终改动；同一审查运行不实施修复。
 
-## Steps
+## 步骤
 
-1. **Bound.** Identify the exact diff and intended behavior. Read the changed code plus the minimum current-state memory and call paths needed to judge it. Complete when every changed file is in or explicitly out of scope.
-2. **Attack.** Look for correctness failures, regressions, security and data risks, contract mismatches, performance costs, and missing meaningful tests. Trace effects beyond changed lines where calls or data cross boundaries. Complete when every change and affected contract has been considered.
-3. **Verify.** Reproduce candidate findings with code evidence or a focused non-mutating check. Discard style preferences and speculation that do not affect behavior, maintainability, safety, performance, testability, or requirements. Complete when each finding has a trigger and impact.
-4. **Report.** Lead with findings ordered by severity, each with a precise location and concrete consequence. Then state open assumptions, test gaps, and residual risk. If there are no findings, say so directly. Complete when the author can act without reconstructing the review.
+1. **定界。** 确认准确 diff 与预期行为，只读改动代码及判断所需的最少当前态和调用路径。**完成条件：每个改动文件都明确在范围内或明确排除。**
+2. **攻击。** 检查正确性、回归、安全与数据风险、契约偏差、性能代价和有意义的测试缺口；调用或数据跨边界时追到改动行之外。**完成条件：每项改动及受影响契约都已考虑。**
+3. **核实。** 用代码证据或聚焦的无副作用检查复现候选 finding，删除不影响行为、维护性、安全、性能、可测性或需求的风格意见。**完成条件：每条 finding 都有触发条件和具体影响。**
+4. **报告。** findings 按严重度置顶，每条给精确位置和后果；随后列假设、测试缺口和残余风险。**完成条件：作者无需重建审查即可行动；无 finding 时明确说明。**
 
-For a qualifying high-risk change, read [the high-risk branch](references/high-risk.md) and verify its authorization, recovery, risk-specific checks, and independence requirements.
+只有命中高风险条件时才读[高风险分支](references/high-risk.md)，并核验授权、恢复、专项验证和独立性。
 
-## Completion
+## 完成条件
 
-The entire stated diff and its affected contracts were reviewed, every finding is evidenced and prioritized, test gaps are explicit, and no review report was added to project memory unless a conclusion independently crossed the memory threshold.
+范围内 diff 及受影响契约全部审过，finding 有证据和优先级；除非结论越过记忆门槛，否则不创建长期审查报告。

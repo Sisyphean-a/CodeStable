@@ -1,9 +1,5 @@
 # CodeStable
 
-## 上游项目（Fork 来源）
-
-**本项目 Fork 自：[codestable/CodeStable](https://github.com/codestable/CodeStable)。**
-
 CodeStable 是一组以项目当前态和可追溯演进为核心的 AI 编程技能。
 
 ## 安装

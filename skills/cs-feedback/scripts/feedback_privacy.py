@@ -19,12 +19,17 @@ PATH_SPACED_CONTINUATION_PATTERN = re.compile(
 )
 PATH_SPACED_WORD_PATTERN = re.compile(rf"[ \t]+({PATH_SEGMENT_PATTERN})")
 PATH_EXTENSION_PATTERN = re.compile(r"[\w+-]+")
+CODE_EXTENSION_PATTERN = (
+    r"py|pyi|ts|tsx|js|jsx|mjs|cjs|vue|go|rs|java|kt|kts|swift|c|h|cc|cpp|hpp|"
+    r"cs|rb|php|sh|bash|zsh|ps1|sql|proto|json|yaml|yml|toml|md|css|scss|html"
+)
 RELATIVE_CODE_PATH_PATTERN = re.compile(
-    r"(?i)(?<![A-Za-z0-9_.-])(?:src|app|lib|packages?|tests?|docs?|skills?|scripts?|components?|views?|composables?|services?)/"
-    r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*(?:\.(?:py|ts|tsx|js|jsx|vue|json|yaml|yml|md|css|scss|html))?"
+    rf"(?i)(?<![A-Za-z0-9_.-])(?:[A-Za-z0-9_.-]+[/\\])+"
+    rf"[A-Za-z0-9_.-]+\.(?:{CODE_EXTENSION_PATTERN})(?![A-Za-z0-9_.-])"
 )
 CODE_FILENAME_PATTERN = re.compile(
-    r"(?i)(?<![A-Za-z0-9_.-])[A-Za-z0-9_-]+\.(?:py|ts|tsx|js|jsx|vue|json|yaml|yml|css|scss|html)(?![A-Za-z0-9_.-])"
+    rf"(?i)(?<![A-Za-z0-9_.-])[A-Za-z0-9_-]+\.(?:{CODE_EXTENSION_PATTERN})"
+    rf"(?![A-Za-z0-9_.-])"
 )
 CJK_PATH_GLUE_PATTERN = re.compile(
     r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff](?=[A-Za-z0-9_.+~-])"
@@ -46,13 +51,18 @@ AUTH_SCHEME_PATTERN = re.compile(
     r"(?:basic|bearer)\s+[A-Za-z0-9._~+/=-]{6,}"
 )
 USER_CREDENTIAL_PATTERN = re.compile(
-    r"(?ix)(?<!\S)(?:-u|--user)(?:\s+|=)"
+    r"(?ix)(?<!\S)(?:-u|--user|--proxy-user)(?:\s+|=)"
     r"(?:\"[^\"\r\n]+\"|'[^'\r\n]+'|[^\s`'\"]+)"
+)
+RAW_USERINFO_PATTERN = re.compile(
+    r"(?i)(?<![A-Za-z0-9_.+-])[A-Za-z0-9_.+-]{2,}:"
+    r"[^\s`'\"<>:@/\\]{6,}(?![A-Za-z0-9_.+-])"
 )
 CREDENTIAL_REDACTIONS = (
     (AUTHORIZATION_HEADER_PATTERN, "<auth-credential>"),
     (USER_CREDENTIAL_PATTERN, "<user-credential>"),
     (AUTH_SCHEME_PATTERN, "<auth-credential>"),
+    (RAW_USERINFO_PATTERN, "<user-credential>"),
 )
 ENV_PATTERN = re.compile(r"\b[A-Z][A-Z0-9_]{2,}\s*=\s*[^\s`'\"<>]+")
 ENV_NAME_PATTERN = re.compile(r"\b[A-Z][A-Z0-9_]{2,}\b")
@@ -323,7 +333,7 @@ def render_public_issue(context: dict[str, object]) -> str:
         ("Impact", "impact"),
         ("Proposed fix", "proposed_fix"),
     )
-    return "# CodeStable feedback\n\n" + "\n".join(
+    return "# 技能反馈\n\n" + "\n".join(
         f"- **{label}:** {incident.get(key) or 'unknown'}"
         for label, key in labels
     ) + "\n"

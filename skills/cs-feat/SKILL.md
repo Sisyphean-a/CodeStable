@@ -1,26 +1,26 @@
 ---
 name: cs-feat
-description: "Feature implementation. Use when the user wants new externally observable capability or an intentional behavior change."
-argument-hint: "<observable outcome>"
+description: "功能实现。用户要新增外部可观察能力，或有意改变现有行为时使用。"
+argument-hint: "<可观察结果>"
 ---
 
-# Feature
+# 功能
 
-Deliver the requested observable outcome without creating a parallel planning workflow.
+直接交付可观察结果，不创建并行规划流程。
 
-## Boundary
+## 边界
 
-This skill owns intentional behavior change. A request whose desired behavior is unchanged is a refactor; behavior that contradicts the intended contract is an issue. Reclassify before editing when evidence changes that boundary.
+本 skill 处理有意行为变化。期望行为不变则是重构；现有行为违反既定契约则是 issue。证据改变分类时，编辑前重新归类。
 
-## Steps
+## 步骤
 
-1. **Scope.** Derive `workspace` or `package:<name>` from the paths likely to change. Load attention and only the relevant current-state memory, then inspect the code. Complete when the existing contract, desired outcome, and affected boundary are explicit.
-2. **Implement.** Make the smallest coherent change that fully delivers the outcome. Let existing repository conventions govern design unless the feature changes them. Complete when every requested behavior is present in the real path, including relevant error and empty states.
-3. **Verify.** Run focused checks that exercise the observable result and affected contracts. Expand to integration or regression coverage when the change crosses boundaries. Complete when fresh evidence proves the result and no known required path is untested.
-4. **Remember.** Apply the memory threshold in [the canonical memory model](../cs-domain/references/memory-model.md). Complete when history, current state, and ADR have each been updated exactly when their threshold is met, or explicitly judged unnecessary.
+1. **定域。** 从可能改动路径确定 `workspace` 或 `package:<name>`，读取 attention、相关当前态和代码。**完成条件：现有契约、期望结果和受影响边界明确。**
+2. **实现。** 用最小完整改动交付结果，设计沿用仓库现有约定，除非功能本身改变约定。**完成条件：真实路径中的所有请求行为及相关错误/空状态都存在。**
+3. **验证。** 运行能证明可观察结果和受影响契约的聚焦检查；跨边界时扩大到集成或回归。**完成条件：新证据覆盖全部必需路径，没有已知漏测。**
+4. **记忆裁决。** 先判断未来是否会因不知道原因而误判。**完成条件：明确无需文档，或在越过门槛时读取[项目记忆模型](../cs-domain/references/memory-model.md)并完成 history/当前态/ADR。**
 
-If the change touches security, persisted data, production operations, irreversible external effects, or a core cross-package protocol, read [the high-risk branch](../cs-code-review/references/high-risk.md) before the risky action.
+只有触及安全、持久化数据、生产操作、不可逆外部影响或核心跨包协议时，才在风险动作前读[高风险分支](../cs-code-review/references/high-risk.md)。
 
-## Completion
+## 完成条件
 
-The observable outcome works, necessary verification passes, high-risk obligations are settled, and current project memory does not contradict the implementation. No feature plan, checklist, QA report, acceptance report, or routine review artifact was created.
+可观察结果有效，必要验证通过，高风险义务已结清，项目当前态不与实现冲突；不创建功能计划、检查清单、质量报告、验收或常规审查产物。

@@ -1,26 +1,26 @@
 ---
 name: cs-refactor
-description: "Behavior-preserving refactor. Use when structure, readability, maintainability, or performance should improve without changing the intended external contract."
-argument-hint: "<target and invariant>"
+description: "行为等价重构。用户要改善结构、可读性、维护性或性能，同时保持既定外部契约时使用。"
+argument-hint: "<目标与不变量>"
 ---
 
-# Behavior-preserving refactor
+# 行为等价
 
-Improve the implementation while keeping its observable contract stable.
+改进实现，同时保持可观察契约稳定。
 
-## Boundary
+## 边界
 
-State the behavior to preserve before editing: outputs, errors, ordering, timing or freshness promises, accessibility, and public interfaces as applicable. An intentional contract change is a feature; correcting a violated contract is an issue.
+编辑前写明需保持的输出、错误、顺序、时延/新鲜度承诺、无障碍和公开接口。主动改变契约是 feature；修正被违反的契约是 issue。
 
-## Steps
+## 步骤
 
-1. **Characterize.** Load scoped current state and identify the target, invariant, and evidence that captures current behavior. Add the smallest characterization check when existing coverage cannot prove equivalence. Complete when a regression would be observable.
-2. **Refactor.** Change the implementation in coherent, reviewable increments. Complete when the structural or measured objective is achieved without a second live path or compatibility layer.
-3. **Verify.** Run behavior-equivalence checks and affected regressions; for performance work, compare a representative benchmark and include resource costs. Complete when fresh evidence proves the preserved contract and the claimed improvement.
-4. **Remember.** Apply [the canonical memory threshold](../cs-domain/references/memory-model.md). Mechanical cleanup normally leaves no project document; update architecture when a real module boundary or stable dependency relation changes.
+1. **刻画。** 读取范围当前态，确定目标、不变量和能捕获现有行为的证据；覆盖不足时补最小特征测试。**完成条件：回归可被观察。**
+2. **重构。** 用连贯、可审查的小步改变实现。**完成条件：结构或度量目标达到，且没有第二条活路径或兼容层。**
+3. **验证。** 运行行为等价检查与受影响回归；性能改动使用代表性基准并计入资源成本。**完成条件：新证据证明契约未变且改进成立。**
+4. **记忆裁决。** 机械整理通常不写文档；真实模块边界或稳定依赖变化才更新 architecture。**完成条件：明确无需文档，或越过门槛时才读取[项目记忆模型](../cs-domain/references/memory-model.md)并写入唯一位置。**
 
-If the work touches security, persisted data, production operations, irreversible external effects, or a core cross-package protocol, read [the high-risk branch](../cs-code-review/references/high-risk.md) before the risky action.
+只有触及安全、持久化数据、生产、不可逆影响或核心协议时，才在风险动作前读[高风险分支](../cs-code-review/references/high-risk.md)。
 
-## Completion
+## 完成条件
 
-The objective is measurable, behavior remains equivalent, verification passes, and memory reflects any enduring boundary change. No process artifact or automatic review was added.
+目标可度量，行为等价，验证通过，长期边界变化已进入当前态；不创建 scan、design、checklist 或常规审查产物。

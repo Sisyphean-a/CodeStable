@@ -1,27 +1,27 @@
 ---
 name: cs-issue
-description: "Root-cause repair. Use when existing behavior is wrong, an error must be diagnosed, or a regression must be fixed."
-argument-hint: "<symptom or failure>"
+description: "根因修复。现有行为错误、需要诊断报错或修复回归时使用。"
+argument-hint: "<症状或失败>"
 ---
 
-# Root-cause repair
+# 根因修复
 
-Restore the intended contract and leave evidence that distinguishes the cause from the symptom.
+恢复既定契约，并用证据区分根因与症状。
 
-## Boundary
+## 边界
 
-A new desired capability is a feature. A structure-only change with preserved observable behavior is a refactor. Reclassify before editing when the requested contract, rather than the implementation, is what changed.
+新的期望能力属于 feature；外部行为不变的结构调整属于 refactor。若请求改变的是契约而非实现，编辑前重新归类。
 
-## Steps
+## 步骤
 
-1. **Reproduce.** Load the relevant scoped current state, then reproduce the symptom or establish an equivalent failing observation. Retrieve a history fragment only when a concrete keyword, code anchor, or conflict requires its reason. Complete when the failure, expected contract, and evidence gap are explicit.
-2. **Prove.** Trace the failure to a cause that explains all observed symptoms. Complete when changing that cause predicts the reproduction will pass; if reproduction is impossible, report the missing evidence instead of claiming a diagnosis.
-3. **Repair.** Fix the cause and add or adjust the narrowest durable regression check. Complete when the original reproduction passes and the symptom is not merely masked.
-4. **Verify.** Run affected regression and contract checks. Complete when fresh evidence covers the repair's blast radius and no known required path remains failing.
-5. **Remember.** Apply [the canonical memory threshold](../cs-domain/references/memory-model.md). Preserve only causes, unusual reproduction conditions, changed assumptions, and residual risks that can affect future judgment.
+1. **复现。** 读取相关 scope 当前态，复现症状或建立等价失败观察；只有具体关键词、代码锚点或冲突需要解释原因时才检索 history。**完成条件：失败、期望契约和证据缺口明确。**
+2. **证明。** 追到能解释全部观察的原因。**完成条件：改变该原因能预测复现转绿；无法复现时明确证据缺口，不声称已诊断。**
+3. **修复。** 修根因并添加或调整最窄的持久回归检查。**完成条件：原复现通过，症状未被遮蔽。**
+4. **验证。** 运行受影响回归与契约检查。**完成条件：新证据覆盖修复爆炸半径，没有已知必需路径失败。**
+5. **记忆裁决。** 先判断根因、特殊复现条件、改变的假设或残余风险是否会影响未来判断。**完成条件：明确无需文档，或越过门槛时才读取[项目记忆模型](../cs-domain/references/memory-model.md)并写入唯一位置。**
 
-If diagnosis or repair touches security, persisted data, production operations, irreversible external effects, or a core cross-package protocol, read [the high-risk branch](../cs-code-review/references/high-risk.md) before the risky action.
+只有诊断或修复触及安全、持久化数据、生产、不可逆影响或核心协议时，才在风险动作前读[高风险分支](../cs-code-review/references/high-risk.md)。
 
-## Completion
+## 完成条件
 
-The root cause is evidenced, the intended behavior is restored, regression checks pass, and any future-relevant cause or changed constraint is represented in current memory. No report/analysis/fix-note pipeline or routine review artifact was created.
+根因有证据，既定行为恢复，回归检查通过，未来相关约束已进入当前态；不创建 report/analysis/fix-note 流程。

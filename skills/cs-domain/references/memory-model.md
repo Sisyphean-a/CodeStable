@@ -1,65 +1,63 @@
-# Canonical memory model
+# 项目记忆模型
 
-This file is the single source of truth for how CodeStable project memory is loaded and written.
+这是 CodeStable 项目记忆加载与写入的唯一规则源。
 
-## Authority
+## 权威顺序
 
-Resolve disagreements in this order:
+冲突按下列顺序处理：
 
-1. Current code and explicitly confirmed decisions.
-2. Current-state pages in `architecture/`, `requirements/CONTEXT.md`, and active ADRs.
-3. `history/` entries and superseded ADRs.
-4. Old task, review, audit, exploration, and migration documents.
+1. 当前代码和已明确确认的决定。
+2. `architecture/`、`requirements/CONTEXT.md` 与有效 ADR。
+3. `history/` 和已替代 ADR。
+4. 旧任务、审查、审计、探索与迁移文档。
 
-A reasonable code evolution is not a bug merely because old prose describes the previous behavior. Restore the current-state page and mark or remove stale material.
+旧文档描述旧行为，不足以把合理演进判成 bug。应恢复当前态，并标记或删除陈旧材料。
 
-## Scoped loading
+## 按 scope 加载
 
-Determine scope from the paths being changed: `workspace` or `package:<name>`. At task start read:
+从改动路径确定 `workspace` 或 `package:<name>`。任务开始只读：
 
-1. `.codestable/attention.md`.
-2. `.codestable/architecture/INDEX.md`.
-3. The relevant package page and directly required shared pages.
-4. Relevant sections of `requirements/CONTEXT.md`.
+1. `.codestable/attention.md`；
+2. `.codestable/architecture/INDEX.md`；
+3. 目标 package 页面和直接依赖的 shared 页面；
+4. `requirements/CONTEXT.md` 的相关小节。
 
-Retrieve ADRs, history, or old evidence only by a concrete keyword, code anchor, or conflict. Never load every package or every history file by default. A monorepo has one root `.codestable`.
+只有具体关键词、代码锚点或冲突需要解释原因时才检索 ADR、history 或旧证据。默认不加载全部包或全部 history。monorepo 只保留一个根 `.codestable`。
 
-## Current-state pages
+## 当前态位置
 
-Write in present tense and keep these pages compact:
+- `architecture/INDEX.md`：scope 地图、主题链接、包归属。
+- `architecture/shared/<topic>.md`：一个跨包契约、不变量或共享机制。
+- `architecture/packages/<package>.md`：包职责、公开边界、依赖、shared 差异和代码锚点。
+- `requirements/CONTEXT.md`：通用语言、稳定业务规则和跨模块不变量。
+- `requirements/adrs/`：存在真实替代方案且回退代价高的决定。
 
-- `architecture/INDEX.md`: scope map, topic links, and package ownership.
-- `architecture/shared/<topic>.md`: one cross-package contract, invariant, or shared mechanism per topic.
-- `architecture/packages/<package>.md`: the package's purpose, public boundaries, dependencies, differences from shared rules, and code anchors.
-- `requirements/CONTEXT.md`: ubiquitous language, stable business rules, and cross-module invariants.
-- `requirements/adrs/`: decisions with genuine alternatives and high reversal cost.
+shared 规则不得复制进 package 页面；package 只链接并记录本包影响。
 
-Do not duplicate a shared rule in package pages. Link to it and record only package-specific impact.
+## 记忆门槛
 
-## Memory threshold
+问：**未来 AI 若不知道这次变化的原因，会不会做出错误判断？**
 
-Ask: **Would a future agent make a wrong decision without knowing why this changed?**
+- **不会：** 不写 `.codestable`。格式化、机械重命名、生成文件变化和普通样式调整通常止于 Git。
+- **会：** 追加一条 history。
+- **接口、模块边界、业务规则或既有假设变化：** 写 history 并更新权威当前态。
+- **安全、数据、不可逆操作、跨包协议或高代价取舍：** 再新增或替代 ADR。
 
-- **No:** write no `.codestable` document. Formatting, mechanical rename, generated churn, and ordinary style changes normally end here.
-- **Yes:** append a history entry.
-- **Interface, module boundary, business rule, or prior assumption changed:** append history and update the owning current-state page.
-- **Security, data, irreversible operation, cross-package protocol, or costly tradeoff:** do the above and add or supersede an ADR.
-
-Accessibility, brand, compatibility, and other durable constraints make an apparently visual change non-mechanical.
+若视觉变化承载无障碍、品牌、兼容等长期约束，就不再是机械改动。
 
 ## History
 
-Append to `.codestable/history/YYYY-MM.md`; do not create a task directory or report.
+追加到 `.codestable/history/YYYY-MM.md`，不创建任务目录：
 
 ```md
-- YYYY-MM-DD · [feature|bug|refactor|evolution] One-sentence result. scope: workspace|package:<name>
-  Reason: Why this changed now.
-  Current basis: Updated architecture / CONTEXT / ADR link, or none.
-  Evidence: Commit, code path, or original historical link.
+- YYYY-MM-DD · [feature|bug|refactor|evolution] 一句话结果。 scope: workspace|package:<name>
+  原因：为什么现在改变。
+  当前依据：更新过的 architecture / CONTEXT / ADR，或 none。
+  证据：提交、代码路径或原始历史链接。
 ```
 
-Record only unusual failures, reproduction conditions, residual risks, or facts useful to future judgment. CI, Git, and source code retain routine commands, passing output, file lists, and review mechanics.
+只记录会影响未来判断的特殊失败、复现条件、残余风险或事实。常规命令、通过结果、文件清单和审查过程由 CI、Git 与代码保留。
 
-## ADRs
+## ADR
 
-An ADR states context, decision, meaningful alternatives, consequences, scope, code anchors, and related history. Give it `status: accepted` or `status: superseded` and use `superseded-by` for replacement. Never silently delete an ADR.
+ADR 写明背景、决定、真实备选、后果、scope、代码锚点和相关 history。状态使用 `accepted` 或 `superseded`，替代时设置 `superseded-by`，不得静默删除。

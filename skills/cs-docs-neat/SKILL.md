@@ -1,25 +1,25 @@
 ---
 name: cs-docs-neat
-description: "Prune CodeStable project memory after a phase or migration. Invoke explicitly to retain, distill, supersede, or delete stale process documents within a named scope."
+description: "剪枝。用户显式要求在某个 scope 内整理或迁移 CodeStable 项目记忆时，保留、提炼、替代或删除陈旧过程文档。"
 disable-model-invocation: true
-argument-hint: "<workspace or package scope>"
+argument-hint: "<workspace 或 package scope>"
 ---
 
-# Prune project memory
+# 剪枝
 
-The result is a smaller, more accurate default working set.
+结果必须是更短、更准确的默认工作集。
 
-## Steps
+## 步骤
 
-1. **Scope.** Derive `workspace` or `package:<name>` from changed paths or the user's target. Read only its attention, current-state pages, direct shared dependencies, and active legacy units. Complete when unrelated packages are excluded.
-2. **Judge.** For every candidate document choose exactly one action: retain current truth; distill reusable truth into its canonical page; supersede stale truth with a pointer to the replacement; delete absorbed process material. Complete when every candidate has a decision.
-3. **Execute.** Write valid conclusions to current state or history before deleting their source. Preserve code anchors, date, and Git or original evidence. ADRs are superseded, never silently removed. Complete when no unique evidence was lost.
-4. **Reconcile.** Compare retained current-state claims with code and confirmed decisions. Restore current truth when old prose merely describes earlier behavior; ask only when authoritative evidence genuinely conflicts. Complete when live pages do not contradict code.
-5. **Prune.** Remove completed plans, routine verification, file inventories, duplicate reports, absorbed exploration, and empty process directories. Do not create an audit, migration, or cleanup artifact. Complete when the scoped default set is shorter, or no change is made because no sediment exists.
-6. **Verify.** Check links, duplicate shared facts, stale replacement pointers, and scope leakage. Complete when every retained fact is reachable from the current index and traceable to evidence.
+1. **定域。** 从改动路径或用户目标确定 `workspace` 或 `package:<name>`，只读该 scope 的 attention、当前态、直接 shared 依赖和活动旧单元。**完成条件：无关包被排除。**
+2. **裁决。** 每份候选只能选一项：保留当前事实、提炼进权威位置、用新依据替代旧结论、删除已吸收过程材料。**完成条件：每份候选都有唯一裁决。**
+3. **执行。** 删除源材料前先写入有效结论，保留代码锚点、日期和 Git 或原始证据；ADR 只能标记替代。**完成条件：没有唯一证据丢失。**
+4. **校准。** 将保留结论与代码和已确认决定对照；旧文档只描述历史行为时恢复当前真相，只有权威证据真正冲突才询问。**完成条件：当前态不与代码冲突。**
+5. **删除。** 清除已完成计划、常规验证、文件清单、重复报告、已吸收探索和空过程目录。**完成条件：scope 默认文件集变短，或确认没有沉积可删。**
+6. **验证。** 检查链接、shared 事实复制、替代指针和 scope 泄漏。**完成条件：每条保留事实可从当前索引到达并追到证据。**
 
-When a write or history decision is needed, use [the canonical memory model](../cs-domain/references/memory-model.md).
+只有裁决要求写当前态或 history 时才读[项目记忆模型](../cs-domain/references/memory-model.md)。
 
-## Completion
+## 完成条件
 
-Every scoped candidate was handled, current state agrees with code, reusable evidence remains traceable, and cleanup did not add a process document.
+所有 scope 内候选已处理，当前态与代码一致，可复用证据可追溯，且没有新增清理报告。

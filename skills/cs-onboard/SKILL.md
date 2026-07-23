@@ -1,14 +1,14 @@
 ---
 name: cs-onboard
-description: "Scaffold project memory, or migrate an existing `.codestable` collection to the current-state architecture, requirements, and history model."
-argument-hint: "[scaffold|migrate] [scope]"
+description: "项目记忆脚手架。在仓库初始化 CodeStable，或把现有 `.codestable` 迁到当前态、需求与 history 模型时使用。"
+argument-hint: "[初始化|迁移] [范围]"
 ---
 
-# Scaffold project memory
+# 项目记忆脚手架
 
-Create one small project memory that future agents can load by scope.
+建立一个可按 scope 加载的小型项目记忆。
 
-## Target
+## 目标结构
 
 ```text
 .codestable/
@@ -23,16 +23,16 @@ Create one small project memory that future agents can load by scope.
 └── history/
 ```
 
-A monorepo uses this single root and labels facts `scope: workspace` or `scope: package:<name>`.
+monorepo 只使用一个根目录，并以 `scope: workspace` 或 `scope: package:<name>` 标记事实。
 
-## Steps
+## 步骤
 
-1. **Inspect.** Find repository roots, workspaces/packages, public boundaries, existing project guidance, and any `.codestable` content. Complete when the topology and whether this is scaffold or migration are known.
-2. **Scaffold.** Create the target directories. Write a concise `attention.md`, an architecture index with code anchors and package ownership, and a `requirements/CONTEXT.md` containing only verified terms, stable rules, and invariants. Create package/shared pages only when evidence exists. Complete when a new session can identify the relevant scope without scanning the repository.
-3. **Migrate when needed.** If legacy task directories or old context files exist, read [the migration branch](references/migration.md) and process one topic at a time. Complete when each migrated fact has a current owner or remains intentionally queued with its source intact.
-4. **Check retrieval.** For one workspace task and each represented package, follow the scoped loading order in [the canonical memory model](../cs-domain/references/memory-model.md). Complete when current design, reason, and superseded history can be found without loading unrelated packages or traversing task directories.
-5. **Prune.** Remove generated runtime rules, gates, templates, and legacy directories only after their unique evidence is represented or preserved in Git. Complete when there is no old/new workflow pair.
+1. **检查。** 找出仓库根、workspace/package、公开边界、现有项目规则和 `.codestable` 内容。**完成条件：拓扑及 scaffold/migrate 模式明确。**
+2. **搭建。** 创建目标目录，写简短 attention、带代码锚点和包归属的架构索引，以及只含已验证术语/稳定规则/不变量的 CONTEXT；有证据时才建 package/shared 页面。**完成条件：新会话无需扫描仓库即可定位 scope。**
+3. **迁移分支。** 只有存在旧任务、审查、探索或 runtime 资料时，才读[旧记忆迁移](references/migration.md)，按主题处理。**完成条件：每个已迁移事实有当前 owner，未迁移来源仍原样保留。**
+4. **检索验证。** 用一个 workspace 任务和每个已表示 package 按 scope 加载。只有该分支需要读取[项目记忆模型](../cs-domain/references/memory-model.md)的“按 scope 加载”小节。**完成条件：不遍历任务目录或无关包即可找到当前设计、原因和替代历史。**
+5. **剪枝。** 唯一证据已表示或可从 Git 恢复后，删除旧 runtime、gate、模板和过程目录。**完成条件：不存在新旧双轨。**
 
-## Completion
+## 完成条件
 
-The target tree is the only default memory entry, current pages match code, shared facts have one owner, old evidence is traceable, and no process workflow was installed into the project.
+目标树是唯一默认入口，当前态与代码一致，shared 事实只有一个 owner，旧证据可追溯，项目内未安装流程 runtime。

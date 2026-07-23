@@ -1,40 +1,40 @@
 ---
 name: cs
-description: "Index and triage the CodeStable skill set. Invoke explicitly when you need help choosing one primary skill."
+description: "分诊。用户显式询问该用哪个 CodeStable 技能时，索引并选出一个主技能。"
 disable-model-invocation: true
-argument-hint: "<request or question>"
+argument-hint: "<请求或问题>"
 ---
 
-# Triage
+# 分诊
 
-Choose one primary skill. A run does not chain primary skills or disguise later work as another workflow.
+一次运行只选一个主 skill，不串联主流程。
 
-## Index
+## 索引
 
-| Intent | Skill |
+| 诉求 | 技能 |
 |---|---|
-| Initialize or migrate project memory | `cs-onboard` |
-| Add capability or intentionally change behavior | `cs-feat` |
-| Diagnose and fix wrong behavior | `cs-issue` |
-| Improve structure while preserving behavior | `cs-refactor` |
-| Decompose a large capability and its dependencies | `cs-epic` |
-| Pursue an explicit terminal goal autonomously | `cs-goal` |
-| Write user or developer documentation | `cs-docs` |
-| Scan a scope and report findings without fixes | `cs-audit` |
-| Review a concrete diff | `cs-code-review` |
-| Explore and converge a fuzzy idea | `cs-brainstorm` |
-| Update canonical terms, rules, architecture, or ADRs | `cs-domain` |
-| Add one per-session startup rule | `cs-note` |
-| Preserve a cross-project lesson | `cs-keep` |
-| Prune stale project memory | `cs-docs-neat` |
-| Collect and report a CodeStable skill failure | `cs-feedback` |
+| 初始化或迁移项目记忆 | `cs-onboard` |
+| 新增能力或有意改变行为 | `cs-feat` |
+| 诊断并修复错误行为 | `cs-issue` |
+| 保持行为不变地改善结构 | `cs-refactor` |
+| 拆分大型能力及依赖 | `cs-epic` |
+| 自主追求明确终点 | `cs-goal` |
+| 写用户或开发者文档 | `cs-docs` |
+| 只读扫描并报告发现 | `cs-audit` |
+| 审查明确 diff | `cs-code-review` |
+| 探索并收敛模糊想法 | `cs-brainstorm` |
+| 更新术语、规则、架构或 ADR | `cs-domain` |
+| 添加每轮必读短规则 | `cs-note` |
+| 沉淀跨项目经验 | `cs-keep` |
+| 剪除陈旧项目记忆 | `cs-docs-neat` |
+| 采集并上报 CodeStable 自身问题 | `cs-feedback` |
 
-## Steps
+## 步骤
 
-1. Identify the request's desired result, not incidental words such as “plan”, “review”, or “continue”. Complete when one row owns the main result.
-2. If two rows remain plausible, ask one question that separates their external outcomes. Complete when one primary skill remains.
-3. Name that skill and give one sentence explaining the boundary. For user-invoked skills, tell the user the exact skill name to invoke; do not pretend to auto-load it. Complete when the next action is unambiguous.
+1. 识别请求最终要产生的结果，不被“计划”“审查”“继续”等附带词带偏。**完成条件：只有一行索引能直接拥有该结果。**
+2. 若仍有两个候选，只问一个能区分外部结果的问题。**完成条件：只剩一个主 skill。**
+3. 给出技能名和一句边界说明；用户触发的技能只提示用户显式调用，不声称自动加载。**完成条件：下一动作没有歧义。**
 
-## Completion
+## 完成条件
 
-Return one recommendation, one discriminating question, or this compact index. Do not write project files or start the selected workflow in the triage run.
+只返回一个推荐、一个区分问题或本索引；不写项目文件，不在分诊运行中启动目标流程。

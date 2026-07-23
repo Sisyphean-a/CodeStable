@@ -1,21 +1,21 @@
 ---
 name: cs-note
-description: "Attention rule. Invoke explicitly when one durable, per-session rule belongs in `.codestable/attention.md`."
+description: "注意力规则。用户显式要求把一条长期、每轮必读的项目规则写入 `.codestable/attention.md` 时使用。"
 disable-model-invocation: true
-argument-hint: "<one durable rule>"
+argument-hint: "<一条长期规则>"
 ---
 
-# Attention rule
+# 注意力规则
 
-`attention.md` is scarce startup context. A rule belongs there only when it is durable, project-specific, and needed in almost every session.
+`attention.md` 是稀缺启动上下文；只有长期、项目专属且几乎每轮都需要的规则才进入。
 
-## Steps
+## 步骤
 
-1. Read `.codestable/attention.md` and the evidence for the requested rule. Complete when the rule is verified and not a temporary task state.
-2. Search for an equivalent rule. Update the existing line when meaning overlaps; otherwise add one direct, actionable line under the nearest heading. Complete when there is a single formulation.
-3. Remove wording that is explanation, history, ownership metadata, or an exception list. Put durable domain facts in current-state memory instead. Complete when the line can guide behavior without another paragraph.
-4. Re-read the whole file. Complete when every remaining line still deserves per-session context load.
+1. 读取 `attention.md` 和请求规则的证据。**完成条件：规则已证实且不是临时任务状态。**
+2. 搜索同义规则；含义重叠就更新原行，否则放到最近标题下。**完成条件：只有一个表达。**
+3. 删除解释、历史、owner 元数据和例外清单；长期领域事实转到当前态。**完成条件：一条直接可行动的短规则即可指导行为。**
+4. 重读整份文件。**完成条件：每条保留内容都仍值得每轮占用上下文。**
 
-## Completion
+## 完成条件
 
-Only `.codestable/attention.md` changed, the new rule is concise and non-duplicated, and no task-specific state was added.
+只修改 `.codestable/attention.md`，规则短、无重复，不含任务临时状态。

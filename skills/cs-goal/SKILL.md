@@ -1,26 +1,26 @@
 ---
 name: cs-goal
-description: "Bounded pursuit. Invoke explicitly with a terminal objective, acceptance evidence, and optional budget."
+description: "有界追求。用户显式给出终点、验收证据和可选预算，要求自主推进到证据闭环时使用。"
 disable-model-invocation: true
-argument-hint: "<objective, acceptance evidence, and optional budget>"
+argument-hint: "<目标、验收证据与可选预算>"
 ---
 
-# Bounded pursuit
+# 有界追求
 
-A goal is a terminal condition, not a wrapper around feature, issue, refactor, or review workflows. Use the best engineering action directly and keep one primary skill active.
+Goal 是终止条件，不包装 feature、issue、refactor 或 review 流程；始终保持一个主 skill。
 
-## Steps
+## 步骤
 
-1. **Bind.** Translate the objective into a finite set of observable requirements, required artifacts or external state, and optional budget. Inspect authoritative current state before trusting prior summaries. Complete when “done” can be disproved.
-2. **Restore.** On every continuation, compare each requirement with current files, command output, runtime behavior, external state, and any stated budget. Choose the highest-value unmet requirement. Complete when the next attempt is tied to one visible gap and remaining budget.
-3. **Execute.** Make the change or investigation needed for that gap, then gather fresh evidence. Continue within the same goal; ordinary bugs, refactors, reviews, and test failures are work, not handoffs. Complete when the gap closes or yields a concrete blocker.
-4. **Remember selectively.** Apply [the canonical memory threshold](../cs-domain/references/memory-model.md) to the work itself. Keep transient progress in the goal harness, not project documents. Complete when no progress or acceptance report was added as memory.
-5. **Audit completion.** Recheck every original requirement against authoritative evidence and ensure no known required work remains. Complete only when all requirements pass together.
+1. **绑定。** 把目标转成有限的可观察要求、必要产物或外部状态及可选预算，并先查权威当前态。**完成条件：完成状态可被反证。**
+2. **恢复。** 每次继续时，用当前文件、命令输出、运行行为、外部状态和预算逐项比对，选择价值最高的缺口。**完成条件：下一次尝试绑定一个可见缺口和剩余预算。**
+3. **执行。** 为该缺口实施改动或调查并获取新证据；普通 bug、重构、审查和测试失败都是当前工作，不转交新流程。**完成条件：缺口关闭或形成具体外部阻塞。**
+4. **记忆裁决。** 临时进度只留在目标运行器。**完成条件：明确无需项目记忆，或变化越过门槛时才读取[项目记忆模型](../cs-domain/references/memory-model.md)并更新唯一当前态。**
+5. **终审。** 用权威证据重查原始每项要求。**完成条件：所有要求同时通过且无已知必需工作。**
 
-Before any security, data, production, irreversible-effect, or core-protocol action, load [the high-risk branch](../cs-code-review/references/high-risk.md) and satisfy its authorization, recovery, verification, and independent-review requirements.
+只有触及安全、数据、生产、不可逆影响或核心协议时，才在动作前读取[高风险分支](../cs-code-review/references/high-risk.md)，满足授权、恢复、专项验证和一次独立审查。
 
-Stop when the stated budget is exhausted and report unmet requirements with evidence. Stop as blocked only when the same external blocker has prevented progress in three consecutive goal turns and the exact user or external action required is known. Persist only the harness's minimal resume state.
+预算耗尽时停止并列出未满足要求及证据。只有同一外部阻塞连续三个目标轮次阻止推进，且所需用户/外部动作明确时才标记为阻塞。
 
-## Completion
+## 完成条件
 
-Fresh evidence proves every terminal requirement and no required work remains; otherwise the exhausted budget or qualifying repeated external blocker is recorded with unmet requirements and a precise recovery action. Any high-risk obligations are settled before completion.
+新证据证明全部终点要求且无剩余必需工作；否则准确记录预算耗尽或合格阻塞、未满足要求和恢复动作。

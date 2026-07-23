@@ -1,20 +1,20 @@
 ---
 name: cs-brainstorm
-description: "Diverge and converge. Use when the user has a fuzzy product or technical idea and wants to explore materially different directions before choosing one."
-argument-hint: "<idea or uncertainty>"
+description: "发散-收敛。用户有模糊的产品或技术想法，希望在选择前探索实质不同的方向时使用。"
+argument-hint: "<想法或不确定点>"
 ---
 
-# Diverge and converge
+# 发散-收敛
 
-Turn an unclear idea into a chosen direction or a sharply stated unknown. The user's final choice or named unknown is the run's single conclusion; earlier options remain alternatives, not competing decisions. This skill explores; it does not implement or create project workflow artifacts.
+用户最终选择或明确的未知，是本轮唯一结论；此前选项只是备选，不与结论并列。
 
-## Steps
+## 步骤
 
-1. **Frame.** Establish the real problem, affected people, desired change, and hard constraints. Ask only questions whose answers would change the option space. Complete when success and uncertainty are distinct.
-2. **Diverge.** Present materially different options, including the simplest credible path. Explain the defining tradeoff and failure mode of each; avoid variants that merely rename the same approach. Complete when the option set spans the consequential choices.
-3. **Probe.** Test the strongest options against constraints, reversibility, evidence gaps, and second-order effects. Use a small read-only investigation when one unknown dominates the decision. Complete when unsupported assumptions are visible.
-4. **Converge.** Recommend a direction with reasons, or name the specific evidence needed before choosing. Capture the user's choice and unresolved boundaries in the conversation. Complete when the result is actionable without pretending certainty.
+1. **定题。** 明确真实问题、受影响的人、期望变化和硬约束，只问会改变选项空间的问题。**完成条件：成功标准与不确定性已分开。**
+2. **发散。** 给出实质不同的选项，包含最简单的可信路径；说明每个选项的核心取舍和失败方式。**完成条件：选项覆盖关键决策，而不是同一方案换名。**
+3. **探测。** 用约束、可逆性、证据缺口和二阶影响挑战强候选；只有一个未知主导决策时才做小型只读调查。**完成条件：未证实假设全部可见。**
+4. **收敛。** 给出有理由的推荐，或指出选择前必须补齐的具体证据；在对话中记录用户选择和未决边界。**完成条件：结果可行动且没有伪装确定性。**
 
-## Completion
+## 完成条件
 
-The user has a chosen direction, one decisive follow-up question, or a reasoned decision to stop. No brainstorm, spike, approval, feature, or goal document was created.
+用户已选方向、留下一个决定性问题或有理由地停止；不创建 brainstorm、spike、审批、feature 或 goal 文档。

@@ -1,25 +1,25 @@
-# High-risk branch
+# 高风险分支
 
-Load this file only when work affects one or more of:
+仅当工作影响下列任一项时加载：
 
-- authentication, authorization, secrets, privacy, or security boundaries;
-- persisted data shape, migration, deletion, or recovery;
-- production infrastructure or live operations;
-- irreversible external effects such as publication, billing, messaging, or destructive commands;
-- a core protocol shared across packages or external consumers.
+- 认证、授权、密钥、隐私或安全边界；
+- 持久化数据结构、迁移、删除或恢复；
+- 生产基础设施或线上操作；
+- 发布、计费、消息发送、破坏性命令等不可逆外部影响；
+- 跨包或面向外部消费者的核心协议。
 
-## Before the risky action
+## 风险动作前
 
-State the exact scope, affected assets, expected effect, rollback or recovery path, and evidence available before execution. Obtain explicit user authorization for the concrete destructive, production, data, or external action. Authorization for analysis or implementation does not imply authorization to execute the side effect.
+写明准确范围、受影响资产、预期效果、回滚或恢复路径和执行前证据。破坏性、生产、数据或外部动作必须获得针对该具体动作的显式授权；分析或实现授权不等于执行副作用的授权。
 
-Prefer a reversible rehearsal or backup when it proves the same operation. Keep failure visible; a fallback, partial success, or skipped migration must be explicit.
+可逆演练或备份能证明同一操作时优先使用。失败必须显式暴露；回退、部分成功或跳过迁移都要明说。
 
-## Verification and review
+## 验证与审查
 
-Use the strongest available check for the risk: restore test for backup, forward/backward compatibility for migration, least-privilege checks for security, dry-run diff for infrastructure, idempotency for externally repeated actions, and consumer tests for shared protocols.
+按风险选最强证据：备份做恢复测试，迁移做前后兼容，安全做最小权限，基础设施做 dry-run diff，可重复外部动作检查幂等性，共享协议跑消费者测试。
 
-After implementation and verification, perform one independent adversarial review of the final diff. Independence means a fresh reviewer context that did not author the change. Resolve blocking findings and review only the resulting delta when fixes are local; repeat the full review only when the risk boundary changes. Keep the review in the conversation or normal code-host review. Persist a conclusion only when it changes project current state or leaves a future-relevant residual risk.
+实现和验证完成后，对最终 diff 做一次独立对抗审查。独立指审查者使用未参与编写的新上下文。阻塞项修复后，局部修复只审增量；只有风险边界变化才完整复审。审查留在对话或代码托管平台；仅当结论改变当前态或留下会影响未来判断的残余风险时才沉淀。
 
-## Completion
+## 完成条件
 
-Authorization matches the action actually executed, recovery is viable, risk-specific verification passes, one independent review has no unresolved blocking finding, and any lasting decision or residual risk is recorded through the canonical memory threshold.
+授权与实际动作一致，恢复路径可用，专项验证通过，一次独立审查无未解决阻塞项，长期决定或残余风险已按记忆门槛处理。

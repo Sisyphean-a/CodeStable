@@ -1,21 +1,21 @@
 ---
 name: cs-keep
-description: "Reusable lesson. Invoke explicitly when the user asks to keep a pitfall, technique, or research conclusion for reuse beyond this repository."
+description: "可复用经验。用户显式要求把坑、技巧或调研结论沉淀到跨项目知识库时使用。"
 disable-model-invocation: true
-argument-hint: "<lesson and destination>"
+argument-hint: "<经验与目标位置>"
 ---
 
-# Reusable lesson
+# 可复用经验
 
-A lesson transfers across projects. Project facts, architecture, decisions, and change reasons belong to project memory instead.
+经验必须能跨项目迁移；项目事实、架构、决定和变化原因属于项目记忆。
 
-## Steps
+## 步骤
 
-1. Confirm the lesson applies beyond the current repository and identify the user's existing knowledge-base destination. If no destination is known, ask before writing. Complete when ownership is explicit.
-2. Reduce the lesson to context, reusable conclusion, boundary conditions, and minimal evidence. Complete when another project can apply it without inheriting local names or paths.
-3. Search the destination for the same meaning; update the canonical entry or create one entry. Complete when the lesson has one source of truth.
-4. Verify links and remove private, transient, or project-only material. Complete when the entry is reusable and safe for its destination.
+1. 确认内容适用于当前仓库之外，并确定用户已有的知识库位置；未知时先询问。**完成条件：归属明确。**
+2. 压缩为背景、可复用结论、适用边界和最小证据。**完成条件：其他项目无需继承本地名称或路径即可使用。**
+3. 在目标位置查重，更新权威条目或新建一个条目。**完成条件：该经验只有一个唯一事实源。**
+4. 检查链接并删除隐私、临时状态和项目专属材料。**完成条件：条目对目标知识库安全且可复用。**
 
-## Completion
+## 完成条件
 
-One cross-project lesson was updated at the confirmed destination. Nothing was written to `.codestable` merely as a generic knowledge dump.
+确认的位置只有一个经验条目被更新；不把通用知识 dump 写入 `.codestable`。

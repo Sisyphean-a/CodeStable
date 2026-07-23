@@ -9,6 +9,7 @@ from typing import Any
 
 ASSESSMENT_SOURCES = {"user", "transcript", "inferred", "unknown"}
 CONFIDENCE_VALUES = {"low", "medium", "high"}
+CAUSE_STATUS_VALUES = {"unclassified", "suspected", "confirmed"}
 EXPECTED_PATTERN = re.compile(
     r"(应该|应当|本应|必须|需要|正确.{0,8}(?:是|为)|should|expected|must|instead)",
     re.IGNORECASE,
@@ -48,6 +49,7 @@ def empty_triage() -> dict[str, Any]:
             "impact": field("unknown", "unknown", []),
             "proposed_fix": field("unknown", "unknown", []),
             "cause_status": "unclassified",
+            "cause_evidence_refs": [],
         },
         "privacy_review": {
             "status": "pending",
@@ -117,6 +119,7 @@ def _assessment_from_incident(incident: dict[str, object]) -> dict[str, object]:
         "impact": field("unknown", "unknown", []),
         "proposed_fix": field("unknown", "unknown", []),
         "cause_status": "unclassified",
+        "cause_evidence_refs": [],
     }
 
 
@@ -166,6 +169,18 @@ def recompute_quality(triage: dict[str, Any]) -> dict[str, Any]:
         has_refs = isinstance(item, dict) and bool(item.get("evidence_refs"))
         if not valid or not has_value or not has_refs:
             questions.append(prompt)
+
+    cause_status = assessment.get("cause_status")
+    cause_refs = assessment.get("cause_evidence_refs")
+    cause_refs_valid = (
+        isinstance(cause_refs, list)
+        and bool(cause_refs)
+        and all(isinstance(ref, str) and ref in observation_ids for ref in cause_refs)
+    )
+    if cause_status not in CAUSE_STATUS_VALUES:
+        questions.append("确认根因状态")
+    elif cause_status != "unclassified" and not cause_refs_valid:
+        questions.append("为已判断根因提供有效观察证据")
 
     triage["quality"] = {
         "triage_ready": not questions,
@@ -249,8 +264,19 @@ def merge_existing_triage(
             and candidate.get("source") == "user"
         ):
             merged["assessment"][key] = copy.deepcopy(candidate)
-    if existing_assessment.get("cause_status"):
-        merged["assessment"]["cause_status"] = existing_assessment["cause_status"]
+    cause_status = existing_assessment.get("cause_status")
+    cause_refs = existing_assessment.get("cause_evidence_refs")
+    cause_refs_valid = (
+        isinstance(cause_refs, list)
+        and bool(cause_refs)
+        and all(isinstance(ref, str) and ref in observation_ids for ref in cause_refs)
+    )
+    if cause_status == "unclassified":
+        merged["assessment"]["cause_status"] = "unclassified"
+        merged["assessment"]["cause_evidence_refs"] = []
+    elif cause_status in CAUSE_STATUS_VALUES and cause_refs_valid:
+        merged["assessment"]["cause_status"] = cause_status
+        merged["assessment"]["cause_evidence_refs"] = copy.deepcopy(cause_refs)
 
     privacy = existing.get("privacy_review")
     if isinstance(privacy, dict):

@@ -1,23 +1,23 @@
 ---
 name: cs-audit
-description: "Findings audit. Use when the user asks to scan a named codebase scope for bugs, security risks, performance problems, or architecture debt without implementing fixes."
-argument-hint: "<scope and audit dimensions>"
+description: "发现审计。用户要求在明确代码范围内扫描 bug、安全、性能或架构债，且本轮不实施修复时使用。"
+argument-hint: "<范围与审计维度>"
 ---
 
-# Findings audit
+# 发现审计
 
-Produce evidence-backed findings. This run is read-only unless the user explicitly changes the task.
+本轮只读，除非用户明确改变任务。
 
-## Steps
+## 步骤
 
-1. **Frame.** Fix the code scope, audit dimensions, and applicable current contracts. Read scoped project memory; load ADRs only when testing architectural or policy conformance. Complete when coverage boundaries and exclusions are explicit.
-2. **Inspect.** Trace relevant code paths and run non-mutating checks. Complete when each in-scope dimension has been investigated, not merely sampled from the first matches.
-3. **Challenge.** For every candidate, verify the trigger, impact, exact location, confidence, and why existing tests or controls do not already settle it. Remove speculation that cannot survive this check. Complete when every remaining finding is reproducible or directly evidenced.
-4. **Report.** Lead with findings ordered by severity. Include location, conditions, impact, confidence, and the smallest useful remediation direction; then state coverage and residual risk. Complete when zero findings is reported plainly rather than padded with process commentary.
-5. **Remember only on request.** Default output stays in the conversation. If the user explicitly asks to preserve a conclusion and it affects future judgment, write it to its canonical current-state owner using [the memory model](../cs-domain/references/memory-model.md), not an audit directory.
+1. **定框。** 固定代码范围、审计维度和适用契约；只读相关 scope 当前态，检查架构或策略合规时才读命中的 ADR。**完成条件：覆盖边界和排除项都明确。**
+2. **检查。** 追踪相关调用路径并运行无副作用检查。**完成条件：每个指定维度都已实查，而不是只看首批匹配。**
+3. **质证。** 对每个候选核实触发条件、影响、精确位置、置信度，以及现有测试或控制为何不能排除它。**完成条件：没有无法复现或直接举证的猜测。**
+4. **报告。** findings 按严重度置顶，写明位置、条件、影响、置信度和最小修复方向，再说明覆盖范围与残余风险。**完成条件：读者无需重做审计即可行动；零发现也直说。**
+5. **按请求沉淀。** 默认只在对话报告；仅当用户明确要求保留且结论会影响未来判断时，才按记忆门槛写入唯一当前态位置。**完成条件：未创建 audit 过程目录，或必要结论已有唯一归属。**
 
-For a security-focused audit, read [the high-risk classification and review rules](../cs-code-review/references/high-risk.md); authorization is required only before a risky side effect, not for read-only inspection.
+安全专项审计只有在需要分类安全风险时才读[高风险分支](../cs-code-review/references/high-risk.md)；只读检查本身不需要操作授权。需要沉淀结论时才读[项目记忆模型](../cs-domain/references/memory-model.md)。
 
-## Completion
+## 完成条件
 
-All named dimensions were covered, every finding has concrete evidence, residual risk is visible, and no fix or audit process document was created.
+指定维度全部覆盖，每条 finding 有证据，残余风险可见，且未夹带修复。

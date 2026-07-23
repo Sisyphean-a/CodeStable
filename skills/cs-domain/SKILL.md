@@ -1,35 +1,31 @@
 ---
 name: cs-domain
-description: "Canonical project memory. Use when terminology, stable rules, architecture boundaries, or a hard-to-reverse decision must become the project's current source of truth."
-argument-hint: "<term, rule, boundary, or decision>"
+description: "权威当前态。术语、稳定规则、架构边界或难回退决定需要成为项目唯一现行依据时使用。"
+argument-hint: "<术语、规则、边界或决定>"
 ---
 
-# Canonical project memory
+# 权威当前态
 
-Maintain what is true now, not a transcript of how the team arrived there.
+只维护“现在为何如此”，不保存讨论过程。
 
-## Boundary
+## 边界
 
-Write only these current-state areas:
+- `.codestable/requirements/CONTEXT.md`：术语、稳定业务规则、跨模块不变量。
+- `.codestable/architecture/INDEX.md`：workspace/package 拓扑与主题索引。
+- `.codestable/architecture/shared/<topic>.md`：跨包共用契约和事实。
+- `.codestable/architecture/packages/<package>.md`：包边界、差异、依赖与代码锚点。
+- `.codestable/requirements/adrs/<id>-<slug>.md`：存在真实替代方案且回退代价高的决定。
 
-- `.codestable/requirements/CONTEXT.md`: terms, stable business rules, and cross-module invariants.
-- `.codestable/architecture/INDEX.md`: workspace/package topology and topic index.
-- `.codestable/architecture/shared/<topic>.md`: contracts and facts shared by packages.
-- `.codestable/architecture/packages/<package>.md`: package boundaries, differences, dependencies, and code anchors.
-- `.codestable/requirements/adrs/<id>-<slug>.md`: consequential decisions that are expensive to reverse and had real alternatives.
+## 步骤
 
-Task plans, ordinary implementation choices, test output, file lists, and review reports are not current-state memory.
+1. **归类。** 为事实选择上面唯一一个权威区域；shared 事实不得复制到 package 页面。**完成条件：事实只有一个 owner 和 scope。**
+2. **校准。** 读取相关代码与当前态；只有具体关键词、代码锚点或冲突需要解释原因时才检索少量 history/ADR。**完成条件：拟写结论与当前证据一致。**
+3. **更新。** 用现在时编辑权威页面；替代旧规则时写明替代关系，ADR 用 `superseded-by`。**完成条件：读者能判断现在是什么以及必要时为何如此。**
+4. **留痕。** 只有本次变化会影响未来判断时才追加当月 history。**完成条件：必要的当前结论能追到代码和历史/ADR 证据；否则明确无需 history。**
+5. **查重。** 搜索所触 scope 的矛盾活跃结论和 shared 复制。**完成条件：没有未解决冲突或重复 owner。**
 
-## Steps
+选定记忆类别后，只读[项目记忆模型](references/memory-model.md)中对应小节；不整份加载无关类别。
 
-1. **Classify.** Identify the one canonical area above. A shared fact belongs in `shared/`, never copied into package pages. Complete when the fact has one owner and one scope.
-2. **Reconcile.** Read the relevant code, current-state page, and only the history or ADR fragments needed to explain a conflict. Code plus confirmed decisions outrank stale prose. Complete when the proposed statement matches current evidence.
-3. **Update.** Edit the canonical page in present tense. When replacing an old rule, state the replacement and update links; mark an ADR `superseded-by` instead of deleting it. Complete when readers can tell what is true now and why.
-4. **Trace.** If this change itself affects future judgment, append one entry to the current month's history using the memory model. Complete when the current statement links to code and, where useful, its history or ADR evidence.
-5. **Check.** Search the touched scope for contradictory live statements and copied shared facts. Complete when no unresolved conflict remains.
+## 完成条件
 
-Before writing current state, read [the canonical memory model](references/memory-model.md). Read only the sections needed for the selected memory class.
-
-## Completion
-
-The fact has one current owner, explicit scope, current code anchors, and a traceable reason when the reason matters. No process document was created.
+事实有唯一当前 owner、明确 scope、有效代码锚点和必要的原因链；不创建过程文档。

@@ -1,22 +1,22 @@
 ---
 name: cs-docs
-description: "Reader-focused documentation. Use when the user asks to create or update a developer guide, user guide, tutorial, or API reference."
-argument-hint: "<audience and topic>"
+description: "读者文档。用户要求创建或更新开发者指南、用户指南、教程或 API 参考时使用。"
+argument-hint: "<读者与主题>"
 ---
 
-# Reader-focused documentation
+# 读者文档
 
-Write the document the named reader needs. Project current-state memory is maintained separately.
+围绕一个明确读者结果写作；项目当前态由记忆技能另行维护。
 
-## Steps
+## 步骤
 
-1. **Reader.** Fix the audience, task, prior knowledge, source of truth, and publishing location. Complete when the document has one reader outcome and a clear boundary.
-2. **Verify facts.** Read the current implementation, public contracts, and neighboring documentation. Resolve contradictions against code and confirmed decisions. Complete when every behavior to be documented has an authoritative source.
-3. **Write.** Match the existing information architecture and vocabulary. Put prerequisites before actions, make examples runnable, and link to canonical detail instead of copying it. Complete when the reader can perform the target task without process commentary.
-4. **Validate.** Run examples where feasible; check commands, symbols, links, headings, and generated documentation rules. Complete when stale names and unverifiable claims are removed.
+1. **读者。** 固定受众、任务、前置知识、事实源和发布位置。**完成条件：文档只有一个读者结果和清晰边界。**
+2. **核实。** 读取当前实现、公开契约和相邻文档，以代码和已确认决定消解冲突。**完成条件：每个待写行为都有权威来源。**
+3. **写作。** 沿用现有信息架构和术语；先写前置条件，再写动作；示例可运行，细节链接到权威位置而不复制。**完成条件：读者无需过程说明即可完成目标任务。**
+4. **验证。** 可行时运行示例，检查命令、符号、链接、标题和生成规则。**完成条件：没有陈旧名称或无法核实的断言。**
 
-For an API reference, additionally enumerate every in-scope public endpoint or symbol, request/input shape, output and errors, authentication or side effects, and one valid example. Complete when the reference matches the current public surface exhaustively.
+只有写 API 参考时，额外穷举范围内公开端点或符号、输入、输出与错误、认证或副作用及一个有效示例。**该分支完成条件：参考与当前公开面逐项一致。**
 
-## Completion
+## 完成条件
 
-The named reader outcome is covered, facts and examples are verified, links resolve, and no design, manifest, focused-edit, or docs-cleanup workflow artifact was created.
+读者结果完整，事实与示例已验证，链接有效，不创建设计、manifest 或文档清理流程产物。

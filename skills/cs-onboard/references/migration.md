@@ -1,13 +1,13 @@
-# Legacy memory migration
+# 旧记忆迁移
 
-Load this file only when `.codestable` already contains task, review, audit, exploration, compound, roadmap, or generated runtime material.
+只有 `.codestable` 已含任务、审查、审计、探索、compound、roadmap 或生成 runtime 时加载。
 
-1. Pick one topic and one `workspace` or `package:<name>` scope.
-2. Establish its current code truth and owning architecture, CONTEXT, or ADR page.
-3. Extract only reasons, constraints, decisions, unusual failures, and residual risks that could affect future judgment.
-4. Add a compact history entry with the old path or Git revision as evidence.
-5. Mark stale material with its replacement while migration is incomplete.
-6. Verify keyword and code-anchor retrieval reaches the current page.
-7. Delete absorbed process documents and empty directories. Preserve unresolved sources until their topic is migrated.
+1. 选一个主题和一个 `workspace` 或 `package:<name>` scope。**完成条件：本轮边界唯一。**
+2. 用当前代码确认真相和 architecture、CONTEXT 或 ADR owner。**完成条件：当前依据明确。**
+3. 只提取会影响未来判断的原因、约束、决定、特殊失败和残余风险。**完成条件：常规过程信息已排除。**
+4. 用旧路径或 Git 修订作证据，追加紧凑 history。**完成条件：原始材料可追溯。**
+5. 迁移未完成期间让旧材料指向替代位置。**完成条件：默认读取不会把旧结论当当前态。**
+6. 用关键词和代码锚点验证能找到当前页面。**完成条件：无需遍历旧目录即可检索。**
+7. 删除已吸收过程文档和空目录，未决来源保留到其主题完成。**完成条件：没有丢证据或新旧双轨。**
 
-ADRs are changed to `status: superseded` with `superseded-by`; they are never deleted. When code and a confirmed decision disagree, stop that topic and ask which authority should change. Ordinary differences between old prose and evolved code do not require confirmation.
+ADR 只能改为 `status: superseded` 并设置 `superseded-by`。代码与已确认决定真正冲突时才停止并询问；旧文档与演进后代码不同不构成阻塞。

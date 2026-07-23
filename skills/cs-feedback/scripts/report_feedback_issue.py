@@ -194,7 +194,7 @@ def expected_title(context: dict[str, object]) -> str:
         raise SystemExit("approved incident must be an object")
     target = str(incident.get("target_skill") or "unknown")
     kind = str(incident.get("incident_kind") or "unknown")
-    return f"CodeStable feedback: {target} {kind}"
+    return f"技能反馈：{target} {kind}"
 
 
 def main_with_args_for_test(argv: list[str] | None = None) -> int:
