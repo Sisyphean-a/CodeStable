@@ -1,33 +1,33 @@
 # CodeStable
 
-CodeStable defines and distributes reusable AI-agent skills. This context records the product vocabulary used to distinguish its publishable skills from host-specific packaging.
+CodeStable 用于定义和分发可复用的 AI 编程技能。本文件记录产品术语，用来区分正式发布的技能与宿主专用的包装内容。
 
-## Language
+## 术语
 
-**Canonical Skill**:
-A user-facing CodeStable skill retained in the product, including the Onboarding Skill. Host plugin adapters and legacy compatibility variants are not Canonical Skills.
-_Avoid_: plugin skill, compatibility skill
+**正式技能**：
+面向使用者、会被保留的 CodeStable 技能，包含初始化技能。宿主插件适配层和旧兼容入口不属于正式技能。
+_避免_: 插件技能、兼容技能
 
-**Core Skill Set**:
-The complete set of current user-facing `cs-*` skills retained as Canonical Skills.
-_Avoid_: selected skills, partial skill set
+**核心技能集**：
+当前保留的全部面向使用者的 `cs-*` 正式技能。
+_避免_: 精选技能、部分技能集
 
-**Minimal README**:
-The sole retained root-level product document, limited to the project's purpose, skill list, and `npx skills` installation instructions.
-_Avoid_: documentation suite, workflow guide
+**极简 README**：
+根目录唯一保留的产品说明，只包含项目用途、技能清单和 `npx skills` 安装命令。
+_避免_: 文档体系、工作流指南
 
-**Skill-Only Repository**:
-A repository containing only the Minimal README and Canonical Skills with resources owned by those skills. Standalone tests, experiments, tools, assets, and historical project artifacts are excluded.
-_Avoid_: plugin repository, development repository
+**纯技能仓库**：
+只包含极简 README、正式技能及其自有资源的仓库。不保留独立测试、实验、工具、资源文件和历史项目产物。
+_避免_: 插件仓库、开发仓库
 
-**Deprecated Compatibility Entry**:
-A legacy skill name that only redirects an old invocation to a Canonical Skill. Deprecated Compatibility Entries are not retained in the product.
-_Avoid_: compatibility skill, alias skill
+**废弃兼容入口**：
+仅将旧调用名转交给正式技能的旧技能名。产品中不保留废弃兼容入口。
+_避免_: 兼容技能、别名技能
 
-**Maintenance Skill**:
-A skill used to author or evaluate CodeStable skills rather than to serve end users. Maintenance Skills are not retained in the product.
-_Avoid_: development skill, internal skill
+**维护技能**：
+用于编写或评测 CodeStable 技能，而非服务终端使用者的技能。产品中不保留维护技能。
+_避免_: 开发技能、内部技能
 
-**Onboarding Skill**:
-A Canonical Skill that establishes CodeStable's required project structure in a target repository. It remains part of the product.
-_Avoid_: setup script, project template
+**初始化技能**：
+在目标仓库中建立 CodeStable 所需项目结构的正式技能。它属于保留范围。
+_避免_: 初始化脚本、项目模板
