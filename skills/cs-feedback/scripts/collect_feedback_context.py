@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
+import secrets
 import sys
 import tempfile
 from dataclasses import asdict
@@ -14,12 +16,14 @@ from typing import Any
 
 sys.dont_write_bytecode = True
 SCRIPT_DIR = Path(__file__).resolve().parent
+TARGET_REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from feedback_incidents import build_incident_payload, public_incident  # noqa: E402
 from feedback_models import PUBLIC_INCIDENT_FIELDS  # noqa: E402
 from feedback_privacy import (  # noqa: E402
+    publication_approval_hash,
     public_projection_hash,
     render_public_issue,
 )
@@ -90,7 +94,7 @@ def _write_text_files_atomically(files: list[tuple[Path, str]]) -> None:
             temporary.unlink(missing_ok=True)
 
 
-def main_with_args_for_test(argv: list[str] | None = None) -> int:
+def _collector_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("--feedback", required=True, help="User's feedback text")
     scope = parser.add_mutually_exclusive_group(required=True)
@@ -99,100 +103,210 @@ def main_with_args_for_test(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, help="Private evidence JSON")
     parser.add_argument("--triage-output", help="Private triage JSON")
     parser.add_argument("--public-output", help="Public allowlist JSON")
-    parser.add_argument("--issue-body-output", help="Approved public issue body")
+    parser.add_argument("--issue-body-output", help="已批准的公开 issue 正文")
+    parser.add_argument("--approval-output", help="一次性发布批准文件")
+    parser.add_argument("--target-repo", help="批准发布到的 owner/repo")
     parser.add_argument("--history-root", help="Override home directory for tests")
     parser.add_argument("--cwd", help="Current repository, required by --session current")
     parser.add_argument("--incident", help="Explicit incident id when several are found")
-    parser.add_argument("--approve-public-preview", action="store_true", help="Approve the current public projection for publishing")
-    args = parser.parse_args(argv)
+    parser.add_argument("--approve-public-preview", action="store_true")
+    return parser
 
+
+def _collector_paths(args: argparse.Namespace) -> dict[str, Path]:
     output = Path(args.output).expanduser()
-    triage_output = Path(args.triage_output).expanduser() if args.triage_output else output.with_name("triage.json")
-    public_output = Path(args.public_output).expanduser() if args.public_output else output.with_name("public-issue-context.json")
+    return {
+        "output": output,
+        "triage": Path(args.triage_output).expanduser() if args.triage_output else output.with_name("triage.json"),
+        "public": Path(args.public_output).expanduser() if args.public_output else output.with_name("public-issue-context.json"),
+        "approval": Path(args.approval_output).expanduser() if args.approval_output else output.with_name("publish-approval.json"),
+    }
+
+
+def _validate_collector_paths(paths: dict[str, Path]) -> list[Path]:
     try:
-        resolved = [path.resolve() for path in (output, triage_output, public_output)]
+        resolved = [paths[key].resolve() for key in ("output", "triage", "public")]
+        approval = paths["approval"].resolve()
     except OSError as exc:
-        print(f"feedback output blocked: {exc}", file=sys.stderr)
-        return 2
-    if len(set(resolved)) != 3:
-        print("feedback output blocked: output paths must be distinct", file=sys.stderr)
-        return 2
+        raise ValueError(f"feedback output blocked: {exc}") from exc
+    if len(set(resolved)) != 3 or approval in resolved:
+        raise ValueError("反馈输出被阻止：输出路径必须互不相同")
+    paths["approval"].unlink(missing_ok=True)
+    paths["approval"].with_name(paths["approval"].name + ".used").unlink(missing_ok=True)
+    return resolved
 
-    try:
-        existing_triage = _load_existing_triage(triage_output)
-    except ValueError as exc:
-        print(f"feedback output blocked: {exc}", file=sys.stderr)
-        return 2
 
+def _collector_environment(args: argparse.Namespace) -> tuple[Path, int, str | None]:
     home = Path(args.history_root).expanduser() if args.history_root else Path.home()
     since_days = args.since_days if args.since_days is not None else 3
     cwd = str(Path(args.cwd).expanduser()) if args.cwd else None
-    files, ambiguity = discover_files(home, since_days, args.session, cwd)
-    if ambiguity:
-        metadata = {"privacy": "local-private", "ambiguity": [asdict(item) for item in ambiguity]}
-        _write_text_files_atomically([(output, json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")])
-        print("feedback session selection required", file=sys.stderr)
-        return 3
+    return home, since_days, cwd
 
-    records_by_path: dict[Path, list[dict[str, Any]]] = {}
-    captures_by_path: dict[Path, dict[str, Any]] = {}
+
+def _select_files(
+    args: argparse.Namespace,
+    paths: dict[str, Path],
+    home: Path,
+    *,
+    since_days: int,
+    cwd: str | None,
+) -> list[Path] | None:
+    files, ambiguity = discover_files(home, since_days, args.session, cwd=cwd)
+    if not ambiguity:
+        return files
+    metadata = {"privacy": "local-private", "ambiguity": [asdict(item) for item in ambiguity]}
+    _write_text_files_atomically([
+        (paths["output"], json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
+    ])
+    print("feedback session selection required", file=sys.stderr)
+    return None
+
+
+def _transcript_snapshots(
+    files: list[Path],
+) -> tuple[dict[Path, list[dict[str, Any]]], dict[Path, dict[str, Any]]]:
+    records: dict[Path, list[dict[str, Any]]] = {}
+    captures: dict[Path, dict[str, Any]] = {}
     for path in files:
-        records_by_path[path], captures_by_path[path] = read_transcript_snapshot(path)
+        records[path], captures[path] = read_transcript_snapshot(path)
+    return records, captures
 
-    anchor = _load_capture_anchor(output)
-    incidents, primary = build_incident_payload(files, args.feedback, cwd, records_by_path, captures_by_path)
-    if anchor and not args.incident:
-        primary = next(
-            (
-                item for item in incidents
-                if item.get("capture_cutoff") == anchor["cutoff"]
-                and isinstance(item.get("environment_context"), dict)
-                and item["environment_context"].get("session") == anchor["session"]
-            ),
-            None,
-        )
+
+def _anchored_primary(
+    incidents: list[dict[str, object]],
+    anchor: dict[str, str] | None,
+) -> dict[str, object] | None:
+    if not anchor:
+        return None
+    return next(
+        (
+            item for item in incidents
+            if item.get("capture_cutoff") == anchor["cutoff"]
+            and isinstance(item.get("environment_context"), dict)
+            and item["environment_context"].get("session") == anchor["session"]
+        ),
+        None,
+    )
+
+
+def _selected_primary(
+    args: argparse.Namespace,
+    incidents: list[dict[str, object]],
+    primary: dict[str, object] | None,
+    *,
+    anchor: dict[str, str] | None,
+) -> dict[str, object] | None:
     if args.incident:
-        primary = next((item for item in incidents if item.get("id") == args.incident), None)
-        if primary is None:
-            print(f"incident selection blocked: {args.incident} not found", file=sys.stderr)
-            return 2
-    if primary and (not anchor or args.incident):
-        anchor = {
-            "session": str(
-                primary.get("environment_context", {}).get("session") or "unknown"
-            ),
-            "cutoff": str(primary.get("capture_cutoff") or "unknown"),
-        }
-        _write_capture_anchor(output, anchor["session"], anchor["cutoff"])
-    generated = build_triage(incidents, primary)
-    try:
-        triage = merge_existing_triage(generated, existing_triage)
-    except ValueError as exc:
-        print(f"feedback output blocked: {exc}", file=sys.stderr)
-        return 2
+        selected = next((item for item in incidents if item.get("id") == args.incident), None)
+        if selected is None:
+            raise ValueError(f"incident selection blocked: {args.incident} not found")
+        return selected
+    return _anchored_primary(incidents, anchor) if anchor else primary
 
+
+def _primary_anchor(primary: dict[str, object]) -> dict[str, str]:
+    environment = primary.get("environment_context")
+    context = environment if isinstance(environment, dict) else {}
+    return {
+        "session": str(context.get("session") or "unknown"),
+        "cutoff": str(primary.get("capture_cutoff") or "unknown"),
+    }
+
+
+def _resolve_incidents(
+    args: argparse.Namespace,
+    paths: dict[str, Path],
+    files: list[Path],
+    *,
+    cwd: str | None,
+    records: dict[Path, list[dict[str, Any]]],
+    captures: dict[Path, dict[str, Any]],
+) -> tuple[list[dict[str, object]], dict[str, object] | None, dict[str, str] | None]:
+    anchor = _load_capture_anchor(paths["output"])
+    incidents, primary = build_incident_payload(
+        files,
+        args.feedback,
+        cwd,
+        records_by_path=records,
+        captures_by_path=captures,
+    )
+    primary = _selected_primary(args, incidents, primary, anchor=anchor)
+    if primary and (not anchor or args.incident):
+        anchor = _primary_anchor(primary)
+        _write_capture_anchor(paths["output"], anchor["session"], anchor["cutoff"])
+    return incidents, primary, anchor
+
+
+def _public_projection(
+    primary: dict[str, object] | None,
+    triage: dict[str, Any],
+) -> dict[str, object]:
     quality = triage.get("quality") if isinstance(triage.get("quality"), dict) else {}
-    public_incidents = [public_incident(primary, triage)] if primary and quality.get("triage_ready") is True else []
-    projection = {
+    ready = primary is not None and quality.get("triage_ready") is True
+    return {
         "privacy": "public-preview",
         "source": "derived-from-local-private-evidence",
         "allowed_fields": PUBLIC_INCIDENT_FIELDS,
-        "incidents": public_incidents,
+        "incidents": [public_incident(primary, triage)] if ready else [],
     }
+
+
+def _pending_review() -> dict[str, object]:
+    return {
+        "status": "pending",
+        "projection_hash": "",
+        "target_repo": "",
+        "approval_id": "",
+        "approval_hash": "",
+        "notes": "需要本轮重新批准",
+    }
+
+
+def _approved_review(
+    projection_hash: str,
+    target_repo: str,
+) -> tuple[dict[str, object], dict[str, object]]:
+    approval_id = secrets.token_urlsafe(24)
+    approval_hash = publication_approval_hash(projection_hash, target_repo, approval_id)
+    review = {
+        "status": "approved",
+        "projection_hash": projection_hash,
+        "target_repo": target_repo,
+        "approval_id": approval_id,
+        "approval_hash": approval_hash,
+        "notes": "用户已批准此投影发布到指定仓库",
+    }
+    approval = {**review, "privacy": "local-private", "status": "available"}
+    return review, approval
+
+
+def _projection_review(
+    args: argparse.Namespace,
+    projection: dict[str, object],
+) -> tuple[str, dict[str, object], dict[str, object] | None]:
     projection_hash = public_projection_hash(projection)
-    if args.approve_public_preview:
-        if not public_incidents:
-            print("public preview approval blocked: triage is not ready", file=sys.stderr)
-            return 2
-        triage["privacy_review"] = {
-            "status": "approved",
-            "projection_hash": projection_hash,
-            "notes": "approved by user for this exact projection",
-        }
-    elif triage.get("privacy_review", {}).get("projection_hash") != projection_hash:
-        triage["privacy_review"] = {"status": "pending", "projection_hash": "", "notes": "projection changed"}
-    public_issue_context = {**projection, "projection_hash": projection_hash, "privacy_review": triage["privacy_review"]}
-    payload = {
+    if not args.approve_public_preview:
+        return projection_hash, _pending_review(), None
+    if not projection["incidents"]:
+        raise ValueError("public preview approval blocked: triage is not ready")
+    if not args.target_repo or not TARGET_REPO_PATTERN.fullmatch(args.target_repo):
+        raise ValueError("公开预览批准被阻止：--target-repo 必须是单个 owner/repo")
+    review, approval = _approved_review(projection_hash, args.target_repo)
+    return projection_hash, review, approval
+
+
+def _capture_anchor(
+    anchor: dict[str, str] | None,
+    primary: dict[str, object] | None,
+) -> dict[str, str]:
+    return anchor or (_primary_anchor(primary) if primary else {"session": "unknown", "cutoff": "unknown"})
+
+
+def _evidence_payload(
+    args: argparse.Namespace,
+    state: dict[str, Any],
+) -> dict[str, object]:
+    return {
         "schema_version": 3,
         "feedback": args.feedback,
         "privacy": "local-private",
@@ -200,41 +314,103 @@ def main_with_args_for_test(argv: list[str] | None = None) -> int:
         "redaction": "best-effort",
         "session_filter": args.session,
         "since_days": args.since_days,
-        "history_root": str(home),
-        "cwd": cwd,
-        "capture_anchor": anchor or {
-            "session": str(primary.get("environment_context", {}).get("session") if primary else "unknown"),
-            "cutoff": str(primary.get("capture_cutoff") if primary else "unknown"),
-        },
-        "searched_files": [str(path) for path in files],
+        "history_root": str(state["home"]),
+        "cwd": state["cwd"],
+        "capture_anchor": _capture_anchor(state["anchor"], state["primary"]),
+        "searched_files": [str(path) for path in state["files"]],
         "captures": [
             {
                 "provider": provider_from_path(path),
-                "session_label": session_label(session_id_from(path, records_by_path[path])),
-                **captures_by_path[path],
+                "session_label": session_label(session_id_from(path, state["records"][path])),
+                **state["captures"][path],
             }
-            for path in files
+            for path in state["files"]
         ],
-        "incidents": incidents,
+        "incidents": state["incidents"],
     }
+
+
+def _collector_outputs(
+    args: argparse.Namespace,
+    paths: dict[str, Path],
+    resolved: list[Path],
+    *,
+    state: dict[str, Any],
+) -> list[tuple[Path, str]]:
     outputs = [
-        (triage_output, json.dumps(triage, ensure_ascii=False, indent=2) + "\n"),
-        (output, json.dumps(payload, ensure_ascii=False, indent=2) + "\n"),
-        (public_output, json.dumps(public_issue_context, ensure_ascii=False, indent=2) + "\n"),
+        (paths["triage"], json.dumps(state["triage"], ensure_ascii=False, indent=2) + "\n"),
+        (paths["output"], json.dumps(_evidence_payload(args, state), ensure_ascii=False, indent=2) + "\n"),
+        (paths["public"], json.dumps(state["context"], ensure_ascii=False, indent=2) + "\n"),
     ]
-    if args.approve_public_preview:
-        issue_body_output = (
-            Path(args.issue_body_output).expanduser()
-            if args.issue_body_output
-            else output.with_name("github-issue.md")
-        )
-        if issue_body_output.resolve() in resolved:
-            print("feedback output blocked: issue body path must be distinct", file=sys.stderr)
-            return 2
-        outputs.append((issue_body_output, render_public_issue(public_issue_context)))
+    if not args.approve_public_preview:
+        return outputs
+    issue_body = Path(args.issue_body_output).expanduser() if args.issue_body_output else paths["output"].with_name("github-issue.md")
+    if issue_body.resolve() in [*resolved, paths["approval"].resolve()]:
+        raise ValueError("feedback output blocked: issue body path must be distinct")
+    outputs.append((issue_body, render_public_issue(state["context"])))
+    outputs.append((paths["approval"], json.dumps(state["approval"], ensure_ascii=False, indent=2) + "\n"))
+    return outputs
+
+
+def _collect_state(
+    args: argparse.Namespace,
+    paths: dict[str, Path],
+    files: list[Path],
+    *,
+    home: Path,
+    cwd: str | None,
+    existing_triage: dict[str, Any] | None,
+) -> dict[str, Any]:
+    records, captures = _transcript_snapshots(files)
+    incidents, primary, anchor = _resolve_incidents(
+        args,
+        paths,
+        files,
+        cwd=cwd,
+        records=records,
+        captures=captures,
+    )
+    triage = merge_existing_triage(build_triage(incidents, primary), existing_triage)
+    projection = _public_projection(primary, triage)
+    projection_hash, review, approval = _projection_review(args, projection)
+    triage["privacy_review"] = review
+    context = {**projection, "projection_hash": projection_hash, "privacy_review": review}
+    return {
+        "home": home,
+        "cwd": cwd,
+        "files": files,
+        "records": records,
+        "captures": captures,
+        "incidents": incidents,
+        "primary": primary,
+        "anchor": anchor,
+        "triage": triage,
+        "context": context,
+        "approval": approval,
+    }
+
+
+def main_with_args_for_test(argv: list[str] | None = None) -> int:
+    args = _collector_parser().parse_args(argv)
+    paths = _collector_paths(args)
     try:
+        resolved = _validate_collector_paths(paths)
+        existing_triage = _load_existing_triage(paths["triage"])
+        home, since_days, cwd = _collector_environment(args)
+        files = _select_files(args, paths, home, since_days=since_days, cwd=cwd)
+        if files is None:
+            return 3
+        state = _collect_state(
+            args,
+            paths,
+            files,
+            home=home,
+            cwd=cwd,
+            existing_triage=existing_triage,
+        )
+        outputs = _collector_outputs(args, paths, resolved, state=state)
         _write_text_files_atomically(outputs)
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
         print(f"feedback output blocked: {exc}", file=sys.stderr)
         return 2
     return 0

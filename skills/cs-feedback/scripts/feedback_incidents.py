@@ -184,6 +184,7 @@ def _incident_from_window(
     window: list[NormalizedRecord],
     feedback: str,
     incident_number: int,
+    *,
     observation_start: int,
     environment: dict[str, object],
     repo_context: dict[str, object],
@@ -252,39 +253,84 @@ def _incident_from_window(
     return asdict(incident), observation_start + len(observations)
 
 
+def _path_snapshot(
+    path: Path,
+    records_by_path: dict[Path, list[dict[str, Any]]] | None,
+    captures_by_path: dict[Path, dict[str, Any]] | None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if records_by_path is None or path not in records_by_path:
+        return read_transcript_snapshot(path)
+    return records_by_path[path], (captures_by_path or {}).get(path, {})
+
+
+def _incident_contains_trigger(
+    incident: dict[str, object],
+    trigger_id: str | None,
+) -> bool:
+    if not trigger_id:
+        return False
+    timeline = incident.get("timeline", [])
+    return any(
+        isinstance(item, dict) and item.get("record_id") == trigger_id
+        for item in timeline
+    )
+
+
+def _append_path_incidents(
+    path: Path,
+    feedback: str,
+    state: dict[str, Any],
+    *,
+    raw_records: list[dict[str, Any]],
+    capture: dict[str, Any],
+    repo_context: dict[str, object],
+) -> None:
+    records = normalize_records(path, raw_records)
+    cutoff = _trigger_cutoff(records)
+    trigger_id = records[cutoff].id if cutoff is not None else None
+    environment = environment_context(path, raw_records, capture)
+    windows = _merge_correlated_windows(_incident_windows(records, cutoff))
+    for window in windows:
+        built = _incident_from_window(
+            window,
+            feedback,
+            len(state["incidents"]) + 1,
+            observation_start=state["observation_number"],
+            environment=environment,
+            repo_context=repo_context,
+        )
+        if built is None:
+            continue
+        incident, state["observation_number"] = built
+        state["incidents"].append(incident)
+        if _incident_contains_trigger(incident, trigger_id):
+            state["primary_candidates"].append(incident)
+
+
 def build_incident_payload(
     paths: list[Path],
     feedback: str,
     cwd: str | None,
+    *,
     records_by_path: dict[Path, list[dict[str, Any]]] | None = None,
     captures_by_path: dict[Path, dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, object]], dict[str, object] | None]:
-    incidents: list[dict[str, object]] = []
-    primary_candidates: list[dict[str, object]] = []
-    observation_number = 1
+    state: dict[str, Any] = {
+        "incidents": [],
+        "primary_candidates": [],
+        "observation_number": 1,
+    }
     repo_context = build_repo_context(cwd)
     for path in paths:
-        if records_by_path is not None and path in records_by_path:
-            raw_records = records_by_path[path]
-            capture = (captures_by_path or {}).get(path, {})
-        else:
-            raw_records, capture = read_transcript_snapshot(path)
-        records = normalize_records(path, raw_records)
-        cutoff = _trigger_cutoff(records)
-        trigger_id = records[cutoff].id if cutoff is not None else None
-        environment = environment_context(path, raw_records, capture)
-        for window in _merge_correlated_windows(_incident_windows(records, cutoff)):
-            built = _incident_from_window(
-                window, feedback, len(incidents) + 1, observation_number, environment, repo_context
-            )
-            if built is None:
-                continue
-            incident, observation_number = built
-            incidents.append(incident)
-            if trigger_id and any(
-                isinstance(item, dict) and item.get("record_id") == trigger_id
-                for item in incident.get("timeline", [])
-            ):
-                primary_candidates.append(incident)
-    primary = primary_candidates[0] if len(primary_candidates) == 1 else None
-    return incidents, primary
+        raw_records, capture = _path_snapshot(path, records_by_path, captures_by_path)
+        _append_path_incidents(
+            path,
+            feedback,
+            state,
+            raw_records=raw_records,
+            capture=capture,
+            repo_context=repo_context,
+        )
+    candidates = state["primary_candidates"]
+    primary = candidates[0] if len(candidates) == 1 else None
+    return state["incidents"], primary

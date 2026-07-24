@@ -1,6 +1,6 @@
 # CodeStable
 
-CodeStable 是一组以项目当前态和可追溯演进为核心的 AI 编程技能。
+CodeStable 是一组以项目当前态和可追溯演进为核心的人工智能编程技能。
 
 ## 安装
 

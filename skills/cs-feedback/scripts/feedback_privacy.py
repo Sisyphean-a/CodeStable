@@ -11,25 +11,22 @@ PATH_SEGMENT_PATTERN = (
 )
 PATH_PATTERN = re.compile(
     rf"(?<![A-Za-z0-9_.~-])(?:~[/\\]{PATH_SEGMENT_PATTERN}(?:[/\\]{PATH_SEGMENT_PATTERN})*"
-    rf"|/(?!(?i:goal)(?:\b|/)){PATH_SEGMENT_PATTERN}(?:/{PATH_SEGMENT_PATTERN})*"
-    rf"|[A-Za-z]:\\{PATH_SEGMENT_PATTERN}(?:\\{PATH_SEGMENT_PATTERN})*)"
+    rf"|/{PATH_SEGMENT_PATTERN}(?:/{PATH_SEGMENT_PATTERN})*"
+    rf"|[A-Za-z]:\\{PATH_SEGMENT_PATTERN}(?:\\{PATH_SEGMENT_PATTERN})*"
+    rf"|\\\\{PATH_SEGMENT_PATTERN}\\{PATH_SEGMENT_PATTERN}(?:\\{PATH_SEGMENT_PATTERN})*)"
 )
 PATH_SPACED_CONTINUATION_PATTERN = re.compile(
     rf"[ \t]+({PATH_SEGMENT_PATTERN})(?:[/\\]{PATH_SEGMENT_PATTERN})+"
 )
 PATH_SPACED_WORD_PATTERN = re.compile(rf"[ \t]+({PATH_SEGMENT_PATTERN})")
 PATH_EXTENSION_PATTERN = re.compile(r"[\w+-]+")
-CODE_EXTENSION_PATTERN = (
-    r"py|pyi|ts|tsx|js|jsx|mjs|cjs|vue|go|rs|java|kt|kts|swift|c|h|cc|cpp|hpp|"
-    r"cs|rb|php|sh|bash|zsh|ps1|sql|proto|json|yaml|yml|toml|md|css|scss|html"
-)
 RELATIVE_CODE_PATH_PATTERN = re.compile(
-    rf"(?i)(?<![A-Za-z0-9_.-])(?:[A-Za-z0-9_.-]+[/\\])+"
-    rf"[A-Za-z0-9_.-]+\.(?:{CODE_EXTENSION_PATTERN})(?![A-Za-z0-9_.-])"
+    r"(?i)(?<![A-Za-z0-9_.-])(?:\.{1,2}[/\\])?"
+    r"(?:[A-Za-z0-9_.-]+[/\\])+[A-Za-z0-9_.-]+(?![A-Za-z0-9_.-])"
 )
 CODE_FILENAME_PATTERN = re.compile(
-    rf"(?i)(?<![A-Za-z0-9_.-])[A-Za-z0-9_-]+\.(?:{CODE_EXTENSION_PATTERN})"
-    rf"(?![A-Za-z0-9_.-])"
+    r"(?i)(?<![A-Za-z0-9_.-])[A-Za-z0-9_-]+\."
+    r"[A-Za-z][A-Za-z0-9_+-]{0,31}(?![A-Za-z0-9_.-])"
 )
 CJK_PATH_GLUE_PATTERN = re.compile(
     r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff](?=[A-Za-z0-9_.+~-])"
@@ -55,8 +52,8 @@ USER_CREDENTIAL_PATTERN = re.compile(
     r"(?:\"[^\"\r\n]+\"|'[^'\r\n]+'|[^\s`'\"]+)"
 )
 RAW_USERINFO_PATTERN = re.compile(
-    r"(?i)(?<![A-Za-z0-9_.+-])[A-Za-z0-9_.+-]{2,}:"
-    r"[^\s`'\"<>:@/\\]{6,}(?![A-Za-z0-9_.+-])"
+    r"(?i)(?<![A-Za-z0-9_.+-])[A-Za-z0-9_.+-]+:"
+    r"[^\s`'\"<>:@/\\]+(?![A-Za-z0-9_.+-])"
 )
 CREDENTIAL_REDACTIONS = (
     (AUTHORIZATION_HEADER_PATTERN, "<auth-credential>"),
@@ -72,27 +69,39 @@ INLINE_JSON_PATTERN = re.compile(
 JSON_DELIMITER_PATTERN = re.compile(r"[{}\[\]]")
 
 
+def _escaped_sequence(text: str, index: int) -> tuple[int, int]:
+    if index + 1 >= len(text):
+        return index + 1, 1
+    if text[index + 1] == "\r" and index + 2 < len(text) and text[index + 2] == "\n":
+        return index + 3, 0
+    if text[index + 1] in "\r\n":
+        return index + 2, 0
+    return index + 2, 1
+
+
 def _quoted_segment_end(text: str, start: int) -> tuple[int, int]:
     quote = text[start]
     index = start + 1
     logical_length = 0
     while index < len(text):
         char = text[index]
-        if char == "\\" and index + 1 < len(text):
-            if text[index + 1] == "\r" and index + 2 < len(text) and text[index + 2] == "\n":
-                index += 3
-            elif text[index + 1] in "\r\n":
-                index += 2
-            else:
-                logical_length += 1
-                index += 2
+        if char == "\\":
+            index, increment = _escaped_sequence(text, index)
+            logical_length += increment
             continue
         if char == quote:
             return index + 1, logical_length
-        if char not in "\r\n":
-            logical_length += 1
+        logical_length += int(char not in "\r\n")
         index += 1
     return len(text), logical_length
+
+
+def _nested_expansion_closer(text: str, index: int) -> str | None:
+    if text.startswith("$(", index):
+        return ")"
+    if text.startswith("${", index):
+        return "}"
+    return None
 
 
 def _shell_expansion_end(text: str, start: int) -> int:
@@ -100,21 +109,15 @@ def _shell_expansion_end(text: str, start: int) -> int:
     index = start + 2
     while index < len(text) and stack:
         char = text[index]
-        if char == "\\" and index + 1 < len(text):
-            if text[index + 1] == "\r" and index + 2 < len(text) and text[index + 2] == "\n":
-                index += 3
-            else:
-                index += 2
+        if char == "\\":
+            index, _increment = _escaped_sequence(text, index)
             continue
         if char in "'\"`":
             index, _length = _quoted_segment_end(text, index)
             continue
-        if text.startswith("$(", index):
-            stack.append(")")
-            index += 2
-            continue
-        if text.startswith("${", index):
-            stack.append("}")
+        nested_closer = _nested_expansion_closer(text, index)
+        if nested_closer:
+            stack.append(nested_closer)
             index += 2
             continue
         opener = "(" if stack[-1] == ")" else "{"
@@ -126,11 +129,30 @@ def _shell_expansion_end(text: str, start: int) -> int:
     return index
 
 
-def _secret_value_end(text: str, start: int) -> int | None:
+def _is_redacted_placeholder(text: str, start: int) -> bool:
     placeholder_end = start + len("<redacted>")
-    if text.startswith("<redacted>", start) and (
+    return text.startswith("<redacted>", start) and (
         placeholder_end == len(text) or text[placeholder_end].isspace()
-    ):
+    )
+
+
+def _secret_value_step(text: str, index: int) -> tuple[int, int, bool]:
+    char = text[index]
+    if text.startswith(("$(", "${"), index):
+        return _shell_expansion_end(text, index), 0, True
+    if char == "$" and index + 1 < len(text) and text[index + 1] in "'\"":
+        return index + 1, 0, False
+    if char in "'\"`":
+        end, length = _quoted_segment_end(text, index)
+        return end, length, False
+    if char == "\\":
+        end, length = _escaped_sequence(text, index)
+        return end, length, False
+    return index + 1, 1, False
+
+
+def _secret_value_end(text: str, start: int) -> int | None:
+    if _is_redacted_placeholder(text, start):
         return None
 
     index = start
@@ -140,29 +162,9 @@ def _secret_value_end(text: str, start: int) -> int | None:
         index < len(text) and text[index] in "'\"`"
     ) or text.startswith(("$'", '$"'), index)
     while index < len(text) and not text[index].isspace():
-        char = text[index]
-        if text.startswith(("$(", "${"), index):
-            has_expansion = True
-            index = _shell_expansion_end(text, index)
-            continue
-        if char == "$" and index + 1 < len(text) and text[index + 1] in "'\"":
-            index += 1
-            continue
-        if char in "'\"`":
-            index, segment_length = _quoted_segment_end(text, index)
-            logical_length += segment_length
-            continue
-        if char == "\\" and index + 1 < len(text):
-            if text[index + 1] == "\r" and index + 2 < len(text) and text[index + 2] == "\n":
-                index += 3
-            elif text[index + 1] == "\n":
-                index += 2
-            else:
-                logical_length += 1
-                index += 2
-            continue
-        logical_length += 1
-        index += 1
+        index, increment, expanded = _secret_value_step(text, index)
+        logical_length += increment
+        has_expansion = has_expansion or expanded
 
     minimum = 4 if starts_quoted else 6
     return index if has_expansion or logical_length >= minimum else None
@@ -250,42 +252,51 @@ def _has_cjk_path_glue(value: str, *, terminal_filename: bool = False) -> bool:
     return False
 
 
-def _absolute_path_end(text: str, match: re.Match[str]) -> int:
-    end = match.end()
-    while end > match.start() and text[end - 1] == ".":
+def _trim_trailing_dots(text: str, start: int, end: int) -> int:
+    while end > start and text[end - 1] == ".":
         end -= 1
+    return end
 
-    opener = text[match.start() - 1] if match.start() else ""
+
+def _quoted_path_end(text: str, start: int, end: int) -> int | None:
+    opener = text[start - 1] if start else ""
     closer = PATH_QUOTE_PAIRS.get(opener)
-    if closer:
-        close = text.find(closer, end)
-        if close >= 0:
-            return close
+    if not closer:
+        return None
+    close = text.find(closer, end)
+    return close if close >= 0 else None
 
+
+def _spaced_path_end(text: str, start: int, end: int) -> int:
     while continuation := PATH_SPACED_CONTINUATION_PATTERN.match(text, end):
         if _has_cjk_path_glue(continuation.group(1)):
-            break
-        end = continuation.end()
-        while end > match.start() and text[end - 1] == ".":
-            end -= 1
+            return end
+        end = _trim_trailing_dots(text, start, continuation.end())
+    return end
 
-    cursor = end
+
+def _following_filename_end(text: str, cursor: int) -> int | None:
     for _ in range(2):
         word = PATH_SPACED_WORD_PATTERN.match(text, cursor)
         if not word:
-            break
-        token_end = word.end(1)
-        while token_end > word.start(1) and text[token_end - 1] == ".":
-            token_end -= 1
+            return None
+        token_end = _trim_trailing_dots(text, word.start(1), word.end(1))
         token = text[word.start(1):token_end]
-        if (
-            _filename_extension(token) is not None
-            and not _has_cjk_path_glue(token, terminal_filename=True)
-            and (token_end == len(text) or text[token_end] not in "/\\")
-        ):
+        is_filename = _filename_extension(token) is not None
+        is_separate = token_end == len(text) or text[token_end] not in "/\\"
+        if is_filename and is_separate and not _has_cjk_path_glue(token, terminal_filename=True):
             return token_end
         cursor = word.end()
-    return end
+    return None
+
+
+def _absolute_path_end(text: str, match: re.Match[str]) -> int:
+    end = _trim_trailing_dots(text, match.start(), match.end())
+    quoted_end = _quoted_path_end(text, match.start(), end)
+    if quoted_end is not None:
+        return quoted_end
+    end = _spaced_path_end(text, match.start(), end)
+    return _following_filename_end(text, end) or end
 
 
 def redact_absolute_paths(text: str) -> str:
@@ -318,6 +329,38 @@ def public_projection_hash(context: dict[str, object]) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def publication_approval_hash(
+    projection_hash: str,
+    target_repo: str,
+    approval_id: str,
+) -> str:
+    raw = json.dumps(
+        {
+            "projection_hash": projection_hash,
+            "target_repo": target_repo,
+            "approval_id": approval_id,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+INCIDENT_KIND_LABELS = {
+    "instruction_failure": "指令失效",
+    "routing_failure": "路由失效",
+    "tool_failure": "工具失效",
+    "rule_ambiguity": "规则不清",
+    "user_correction": "用户纠正",
+    "other": "其他",
+}
+
+
+def public_incident_kind_label(value: object) -> str:
+    raw = str(value or "").strip()
+    return INCIDENT_KIND_LABELS.get(raw, raw or "未知")
+
+
 def render_public_issue(context: dict[str, object]) -> str:
     incidents = context.get("incidents")
     if not isinstance(incidents, list) or len(incidents) != 1:
@@ -326,15 +369,19 @@ def render_public_issue(context: dict[str, object]) -> str:
     if not isinstance(incident, dict):
         raise ValueError("public preview incident must be an object")
     labels = (
-        ("Incident kind", "incident_kind"),
-        ("Target skill", "target_skill"),
-        ("Expected behavior", "expected_behavior"),
-        ("Actual behavior", "actual_behavior"),
-        ("Impact", "impact"),
-        ("Proposed fix", "proposed_fix"),
+        ("事件类型", "incident_kind"),
+        ("目标技能", "target_skill"),
+        ("预期行为", "expected_behavior"),
+        ("实际行为", "actual_behavior"),
+        ("影响", "impact"),
+        ("建议修法", "proposed_fix"),
     )
+    values = {
+        **incident,
+        "incident_kind": public_incident_kind_label(incident.get("incident_kind")),
+    }
     return "# 技能反馈\n\n" + "\n".join(
-        f"- **{label}:** {incident.get(key) or 'unknown'}"
+        f"- **{label}:** {values.get(key) or '未知'}"
         for label, key in labels
     ) + "\n"
 
@@ -358,8 +405,14 @@ def public_redact(
     text = RELATIVE_CODE_PATH_PATTERN.sub("<private-reference>", text)
     text = CODE_FILENAME_PATTERN.sub("<private-reference>", text)
     for token in sorted(private_tokens or set(), key=len, reverse=True):
-        if len(token) >= 3:
-            text = re.sub(re.escape(token), "<private-repository>", text, flags=re.IGNORECASE)
+        if not token:
+            continue
+        text = re.sub(
+            rf"(?<![A-Za-z0-9_.-]){re.escape(token)}(?![A-Za-z0-9_.-])",
+            "<private-repository>",
+            text,
+            flags=re.IGNORECASE,
+        )
     if len(text) > limit:
         return text[:limit] + "...<truncated>"
     return text

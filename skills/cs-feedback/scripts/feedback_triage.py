@@ -20,6 +20,7 @@ def field(
     value: str,
     source: str,
     refs: list[str],
+    *,
     confidence: str | None = None,
 ) -> dict[str, object]:
     out: dict[str, object] = {
@@ -54,6 +55,9 @@ def empty_triage() -> dict[str, Any]:
         "privacy_review": {
             "status": "pending",
             "projection_hash": "",
+            "target_repo": "",
+            "approval_id": "",
+            "approval_hash": "",
             "notes": "",
         },
         "quality": {"triage_ready": False, "next_questions": []},
@@ -79,43 +83,40 @@ def incident_fingerprint(incident: dict[str, object]) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def _assessment_from_incident(incident: dict[str, object]) -> dict[str, object]:
+def _referenced_text(item: dict[str, object] | None) -> tuple[str, list[str]]:
+    if not item:
+        return "unknown", []
+    text = str(item.get("text") or "unknown")
+    refs = [str(item["id"])] if item.get("id") else []
+    return text, refs
+
+
+def _expected_assessment(incident: dict[str, object]) -> dict[str, object]:
+    correction = incident.get("user_correction")
+    item = correction if isinstance(correction, dict) else None
+    text, refs = _referenced_text(item)
+    expected = text if text != "unknown" and EXPECTED_PATTERN.search(text) else "unknown"
+    source = "transcript" if expected != "unknown" else "unknown"
+    return field(expected, source, refs)
+
+
+def _actual_assessment(incident: dict[str, object]) -> dict[str, object]:
     observations = [
         item for item in incident.get("observations", []) if isinstance(item, dict)
     ]
-    correction = (
-        incident.get("user_correction")
-        if isinstance(incident.get("user_correction"), dict)
-        else {}
-    )
-    correction_text = str(correction.get("text") or "unknown")
-    correction_ref = [str(correction.get("id"))] if correction.get("id") else []
-    expected = (
-        correction_text
-        if correction_text != "unknown" and EXPECTED_PATTERN.search(correction_text)
-        else "unknown"
-    )
-    actual_item = next(
-        (item for item in reversed(observations) if item.get("role") == "assistant"),
+    item = next(
+        (candidate for candidate in reversed(observations) if candidate.get("role") == "assistant"),
         None,
     )
-    actual = str(actual_item.get("text")) if actual_item else "unknown"
-    actual_refs = (
-        [str(actual_item.get("id"))]
-        if actual_item and actual_item.get("id")
-        else []
-    )
+    actual, refs = _referenced_text(item)
+    source = "transcript" if actual != "unknown" else "unknown"
+    return field(actual, source, refs)
+
+
+def _assessment_from_incident(incident: dict[str, object]) -> dict[str, object]:
     return {
-        "expected_behavior": field(
-            expected,
-            "transcript" if expected != "unknown" else "unknown",
-            correction_ref,
-        ),
-        "actual_behavior": field(
-            actual,
-            "transcript" if actual != "unknown" else "unknown",
-            actual_refs,
-        ),
+        "expected_behavior": _expected_assessment(incident),
+        "actual_behavior": _actual_assessment(incident),
         "impact": field("unknown", "unknown", []),
         "proposed_fix": field("unknown", "unknown", []),
         "cause_status": "unclassified",
@@ -137,55 +138,73 @@ def _valid_assessment(value: object, observation_ids: set[str]) -> bool:
     return True
 
 
-def recompute_quality(triage: dict[str, Any]) -> dict[str, Any]:
-    questions: list[str] = []
-    if not triage.get("incident_id"):
-        questions.append("select incident")
-    if triage.get("target_skill") in (None, "", "unknown"):
-        questions.append("identify target skill")
-
-    observation_ids = {
+def _observation_ids(triage: dict[str, Any]) -> set[str]:
+    return {
         item for item in triage.get("observation_ids", []) if isinstance(item, str)
     }
+
+
+def _base_questions(triage: dict[str, Any], observation_ids: set[str]) -> list[str]:
+    questions: list[str] = []
+    if not triage.get("incident_id"):
+        questions.append("选择一个事件")
+    if triage.get("target_skill") in (None, "", "unknown"):
+        questions.append("确认目标技能")
     if not observation_ids:
-        questions.append("identify supporting observations")
+        questions.append("确认支撑结论的观察记录")
+    return questions
 
-    assessment = (
-        triage.get("assessment")
-        if isinstance(triage.get("assessment"), dict)
-        else {}
+
+def _assessment_item_complete(value: object, observation_ids: set[str]) -> bool:
+    if not _valid_assessment(value, observation_ids) or not isinstance(value, dict):
+        return False
+    return value.get("value") not in (None, "", "unknown") and bool(value.get("evidence_refs"))
+
+
+def _assessment_questions(
+    assessment: dict[str, Any],
+    observation_ids: set[str],
+) -> list[str]:
+    prompts = (
+        ("expected_behavior", "说明预期行为并引用有效观察记录"),
+        ("actual_behavior", "说明实际行为并引用有效观察记录"),
     )
-    for key, prompt in (
-        ("expected_behavior", "state expected behavior with valid observation refs"),
-        ("actual_behavior", "state actual behavior with valid observation refs"),
-    ):
-        item = assessment.get(key)
-        valid = _valid_assessment(item, observation_ids)
-        has_value = isinstance(item, dict) and item.get("value") not in (
-            None,
-            "",
-            "unknown",
-        )
-        has_refs = isinstance(item, dict) and bool(item.get("evidence_refs"))
-        if not valid or not has_value or not has_refs:
-            questions.append(prompt)
+    return [
+        prompt
+        for key, prompt in prompts
+        if not _assessment_item_complete(assessment.get(key), observation_ids)
+    ]
 
-    cause_status = assessment.get("cause_status")
-    cause_refs = assessment.get("cause_evidence_refs")
-    cause_refs_valid = (
-        isinstance(cause_refs, list)
-        and bool(cause_refs)
-        and all(isinstance(ref, str) and ref in observation_ids for ref in cause_refs)
+
+def _valid_cause_refs(value: object, observation_ids: set[str]) -> bool:
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(isinstance(ref, str) and ref in observation_ids for ref in value)
     )
-    if cause_status not in CAUSE_STATUS_VALUES:
-        questions.append("确认根因状态")
-    elif cause_status != "unclassified" and not cause_refs_valid:
-        questions.append("为已判断根因提供有效观察证据")
 
-    triage["quality"] = {
-        "triage_ready": not questions,
-        "next_questions": questions,
-    }
+
+def _cause_questions(
+    assessment: dict[str, Any],
+    observation_ids: set[str],
+) -> list[str]:
+    status = assessment.get("cause_status")
+    if status not in CAUSE_STATUS_VALUES:
+        return ["确认根因状态"]
+    refs_valid = _valid_cause_refs(assessment.get("cause_evidence_refs"), observation_ids)
+    if status != "unclassified" and not refs_valid:
+        return ["为已判断根因提供有效观察证据"]
+    return []
+
+
+def recompute_quality(triage: dict[str, Any]) -> dict[str, Any]:
+    observation_ids = _observation_ids(triage)
+    assessment = triage.get("assessment")
+    normalized = assessment if isinstance(assessment, dict) else {}
+    questions = _base_questions(triage, observation_ids)
+    questions.extend(_assessment_questions(normalized, observation_ids))
+    questions.extend(_cause_questions(normalized, observation_ids))
+    triage["quality"] = {"triage_ready": not questions, "next_questions": questions}
     return triage
 
 
@@ -225,64 +244,60 @@ def build_triage(
     return recompute_quality(triage)
 
 
+def _validate_existing_triage(existing: dict[str, Any]) -> None:
+    if existing.get("schema_version") != 3 or existing.get("privacy") != "local-private":
+        raise ValueError("existing triage must be schema v3 local-private")
+
+
+def _same_incident(generated: dict[str, Any], existing: dict[str, Any]) -> bool:
+    fingerprint = generated.get("incident_fingerprint")
+    return bool(fingerprint) and fingerprint == existing.get("incident_fingerprint")
+
+
+def _merge_user_assessments(
+    merged: dict[str, Any],
+    existing_assessment: dict[str, Any],
+    observation_ids: set[str],
+) -> None:
+    keys = ("expected_behavior", "actual_behavior", "impact", "proposed_fix")
+    for key in keys:
+        candidate = existing_assessment.get(key)
+        if not isinstance(candidate, dict) or candidate.get("source") != "user":
+            continue
+        if _valid_assessment(candidate, observation_ids):
+            merged["assessment"][key] = copy.deepcopy(candidate)
+
+
+def _merge_cause(
+    merged: dict[str, Any],
+    existing_assessment: dict[str, Any],
+    observation_ids: set[str],
+) -> None:
+    status = existing_assessment.get("cause_status")
+    refs = existing_assessment.get("cause_evidence_refs")
+    if status == "unclassified":
+        merged["assessment"]["cause_status"] = "unclassified"
+        merged["assessment"]["cause_evidence_refs"] = []
+        return
+    if status not in CAUSE_STATUS_VALUES or not _valid_cause_refs(refs, observation_ids):
+        return
+    merged["assessment"]["cause_status"] = status
+    merged["assessment"]["cause_evidence_refs"] = copy.deepcopy(refs)
+
+
 def merge_existing_triage(
     generated: dict[str, Any],
     existing: dict[str, Any] | None,
 ) -> dict[str, Any]:
     if existing is None:
         return generated
-    if (
-        existing.get("schema_version") != 3
-        or existing.get("privacy") != "local-private"
-    ):
-        raise ValueError("existing triage must be schema v3 local-private")
-
-    same_incident = bool(generated.get("incident_fingerprint")) and (
-        generated.get("incident_fingerprint")
-        == existing.get("incident_fingerprint")
-    )
-    if not same_incident:
+    _validate_existing_triage(existing)
+    if not _same_incident(generated, existing):
         return generated
-
     merged = copy.deepcopy(generated)
-    observation_ids = set(merged.get("observation_ids", []))
-    existing_assessment = (
-        existing.get("assessment")
-        if isinstance(existing.get("assessment"), dict)
-        else {}
-    )
-    for key in (
-        "expected_behavior",
-        "actual_behavior",
-        "impact",
-        "proposed_fix",
-    ):
-        candidate = existing_assessment.get(key)
-        if (
-            _valid_assessment(candidate, observation_ids)
-            and isinstance(candidate, dict)
-            and candidate.get("source") == "user"
-        ):
-            merged["assessment"][key] = copy.deepcopy(candidate)
-    cause_status = existing_assessment.get("cause_status")
-    cause_refs = existing_assessment.get("cause_evidence_refs")
-    cause_refs_valid = (
-        isinstance(cause_refs, list)
-        and bool(cause_refs)
-        and all(isinstance(ref, str) and ref in observation_ids for ref in cause_refs)
-    )
-    if cause_status == "unclassified":
-        merged["assessment"]["cause_status"] = "unclassified"
-        merged["assessment"]["cause_evidence_refs"] = []
-    elif cause_status in CAUSE_STATUS_VALUES and cause_refs_valid:
-        merged["assessment"]["cause_status"] = cause_status
-        merged["assessment"]["cause_evidence_refs"] = copy.deepcopy(cause_refs)
-
-    privacy = existing.get("privacy_review")
-    if isinstance(privacy, dict):
-        merged["privacy_review"] = {
-            "status": str(privacy.get("status") or "pending"),
-            "projection_hash": str(privacy.get("projection_hash") or ""),
-            "notes": str(privacy.get("notes") or ""),
-        }
+    observation_ids = _observation_ids(merged)
+    assessment = existing.get("assessment")
+    existing_assessment = assessment if isinstance(assessment, dict) else {}
+    _merge_user_assessments(merged, existing_assessment, observation_ids)
+    _merge_cause(merged, existing_assessment, observation_ids)
     return recompute_quality(merged)

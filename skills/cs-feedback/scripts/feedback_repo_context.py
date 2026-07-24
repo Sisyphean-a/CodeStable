@@ -62,26 +62,52 @@ def build_repo_context(cwd: str | None) -> dict[str, object]:
     return {"git_head": head, "dirty_paths": dirty_paths, "private_tokens": private_tokens}
 
 
+def _environment_payload(record: dict[str, Any]) -> dict[str, Any] | None:
+    payload = record.get("payload") if isinstance(record.get("payload"), dict) else record
+    record_type = str(record.get("type") or payload.get("type") or "")
+    top_level_metadata = any(
+        key in record for key in ("session_id", "sessionId", "cwd")
+    ) and not BODY_FIELDS.intersection(record)
+    if record_type not in ENVIRONMENT_METADATA_TYPES and not top_level_metadata:
+        return None
+    return payload
+
+
+def _environment_version(payload: dict[str, Any]) -> object:
+    return payload.get("version") or payload.get("client_version") or payload.get("cli_version")
+
+
+def _update_environment_values(
+    values: tuple[str, str],
+    payload: dict[str, Any],
+) -> tuple[str, str]:
+    model, host_version = values
+    if model == "unknown" and payload.get("model"):
+        model = public_redact(str(payload["model"]), limit=120)
+    version = _environment_version(payload)
+    if host_version == "unknown" and version:
+        host_version = public_redact(str(version), limit=120)
+    return model, host_version
+
+
+def _environment_values(records: list[dict[str, Any]]) -> tuple[str, str]:
+    values = ("unknown", "unknown")
+    for record in records:
+        payload = _environment_payload(record)
+        if payload is None:
+            continue
+        values = _update_environment_values(values, payload)
+        if "unknown" not in values:
+            return values
+    return values
+
+
 def environment_context(
     path: Path,
     records: list[dict[str, Any]],
     capture: dict[str, Any],
 ) -> dict[str, object]:
-    model = "unknown"
-    host_version = "unknown"
-    for record in records:
-        payload = record.get("payload") if isinstance(record.get("payload"), dict) else record
-        record_type = str(record.get("type") or payload.get("type") or "")
-        top_level_metadata = any(key in record for key in ("session_id", "sessionId", "cwd")) and not BODY_FIELDS.intersection(record)
-        if record_type not in ENVIRONMENT_METADATA_TYPES and not top_level_metadata:
-            continue
-        if model == "unknown" and payload.get("model"):
-            model = public_redact(str(payload["model"]), limit=120)
-        version = payload.get("version") or payload.get("client_version") or payload.get("cli_version")
-        if host_version == "unknown" and version:
-            host_version = public_redact(str(version), limit=120)
-        if model != "unknown" and host_version != "unknown":
-            break
+    model, host_version = _environment_values(records)
     return {
         "provider": provider_from_path(path),
         "session": session_label(session_id_from(path, records)),

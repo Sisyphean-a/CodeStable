@@ -7,57 +7,57 @@
 冲突按下列顺序处理：
 
 1. 当前代码和已明确确认的决定。
-2. `architecture/`、`requirements/CONTEXT.md` 与有效 ADR。
-3. `history/` 和已替代 ADR。
+2. `architecture/`、`requirements/CONTEXT.md` 与有效架构决定记录。
+3. `history/` 和已替代架构决定记录。
 4. 旧任务、审查、审计、探索与迁移文档。
 
-旧文档描述旧行为，不足以把合理演进判成 bug。应恢复当前态，并标记或删除陈旧材料。
+旧文档描述旧行为，不足以把合理演进判成缺陷。应恢复当前态，并标记或删除陈旧材料。
 
-## 按 scope 加载
+## 按范围加载
 
 从改动路径确定 `workspace` 或 `package:<name>`。任务开始只读：
 
 1. `.codestable/attention.md`；
 2. `.codestable/architecture/INDEX.md`；
-3. 目标 package 页面和直接依赖的 shared 页面；
+3. 目标包页面和直接依赖的共享页面；
 4. `requirements/CONTEXT.md` 的相关小节。
 
-只有具体关键词、代码锚点或冲突需要解释原因时才检索 ADR、history 或旧证据。默认不加载全部包或全部 history。monorepo 只保留一个根 `.codestable`。
+只有具体关键词、代码锚点或冲突需要解释原因时才检索架构决定记录、历史或旧证据。默认不加载全部包或全部历史。单仓多包项目只保留一个根 `.codestable`。
 
 ## 当前态位置
 
-- `architecture/INDEX.md`：scope 地图、主题链接、包归属。
+- `architecture/INDEX.md`：范围地图、主题链接、包归属。
 - `architecture/shared/<topic>.md`：一个跨包契约、不变量或共享机制。
-- `architecture/packages/<package>.md`：包职责、公开边界、依赖、shared 差异和代码锚点。
+- `architecture/packages/<package>.md`：包职责、公开边界、依赖、共享差异和代码锚点。
 - `requirements/CONTEXT.md`：通用语言、稳定业务规则和跨模块不变量。
 - `requirements/adrs/`：存在真实替代方案且回退代价高的决定。
 
-shared 规则不得复制进 package 页面；package 只链接并记录本包影响。
+共享规则不得复制进包页面；包页面只链接并记录本包影响。
 
 ## 记忆门槛
 
-问：**未来 AI 若不知道这次变化的原因，会不会做出错误判断？**
+问：**未来人工智能若不知道这次变化的原因，会不会做出错误判断？**
 
 - **不会：** 不写 `.codestable`。格式化、机械重命名、生成文件变化和普通样式调整通常止于 Git。
-- **会：** 追加一条 history。
-- **接口、模块边界、业务规则或既有假设变化：** 写 history 并更新权威当前态。
-- **安全、数据、不可逆操作、跨包协议或高代价取舍：** 再新增或替代 ADR。
+- **会：** 追加一条历史。
+- **接口、模块边界、业务规则或既有假设变化：** 写历史并更新权威当前态。
+- **安全、数据、不可逆操作、跨包协议或高代价取舍：** 再新增或替代架构决定记录。
 
 若视觉变化承载无障碍、品牌、兼容等长期约束，就不再是机械改动。
 
-## History
+## 历史
 
 追加到 `.codestable/history/YYYY-MM.md`，不创建任务目录：
 
 ```md
-- YYYY-MM-DD · [feature|bug|refactor|evolution] 一句话结果。 scope: workspace|package:<name>
+- 日期 · [功能|缺陷|重构|演进] 一句话结果。范围：工作区或包名
   原因：为什么现在改变。
-  当前依据：更新过的 architecture / CONTEXT / ADR，或 none。
+  当前依据：更新过的架构、领域上下文或架构决定记录；没有则写“无”。
   证据：提交、代码路径或原始历史链接。
 ```
 
-只记录会影响未来判断的特殊失败、复现条件、残余风险或事实。常规命令、通过结果、文件清单和审查过程由 CI、Git 与代码保留。
+只记录会影响未来判断的特殊失败、复现条件、残余风险或事实。常规命令、通过结果、文件清单和审查过程由持续集成、Git 与代码保留。
 
-## ADR
+## 架构决定记录
 
-ADR 写明背景、决定、真实备选、后果、scope、代码锚点和相关 history。状态使用 `accepted` 或 `superseded`，替代时设置 `superseded-by`，不得静默删除。
+架构决定记录写明背景、决定、真实备选、后果、范围、代码锚点和相关历史。状态使用 `accepted` 或 `superseded`，替代时设置 `superseded-by`，不得静默删除。
