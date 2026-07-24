@@ -1,12 +1,12 @@
 ---
 name: cs-onboard
-description: "项目记忆脚手架。在仓库初始化 CodeStable，或把现有 `.codestable` 迁到当前态、需求与历史模型时使用。"
+description: "项目记忆脚手架。在仓库首次初始化 CodeStable，或把整套旧 `.codestable` 迁到当前记忆模型时使用。"
 argument-hint: "[初始化|迁移] [范围]"
 ---
 
 # 项目记忆脚手架
 
-建立一个可按范围加载的小型项目记忆。
+建立一个可按范围加载的小型项目记忆。已有目标结构的日常清理由 `cs-docs-neat` 负责。
 
 ## 目标结构
 

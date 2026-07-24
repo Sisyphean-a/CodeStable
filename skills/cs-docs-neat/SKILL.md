@@ -1,13 +1,13 @@
 ---
 name: cs-docs-neat
-description: "剪枝。用户显式要求在某个范围内整理或迁移 CodeStable 项目记忆时，保留、提炼、替代或删除陈旧过程文档。"
+description: "剪枝。用户显式要求清理已有 CodeStable 项目记忆时，在指定范围内保留、提炼、替代或删除陈旧材料。"
 disable-model-invocation: true
 argument-hint: "<工作区或包范围>"
 ---
 
 # 剪枝
 
-结果必须是更短、更准确的默认工作集。
+结果必须是更短、更准确的默认工作集。首次初始化或整体迁移属于 `cs-onboard`。
 
 开始定域前，只读[项目记忆模型](../cs-domain/references/memory-model.md)的“按范围加载”小节，并按该顺序取得当前工作集。
 

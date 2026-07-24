@@ -27,7 +27,6 @@ argument-hint: "<请求或问题>"
 | 添加每轮必读短规则 | `cs-note` |
 | 沉淀跨项目经验 | `cs-keep` |
 | 剪除陈旧项目记忆 | `cs-docs-neat` |
-| 采集并上报 CodeStable 自身问题 | `cs-feedback` |
 
 ## 步骤
 

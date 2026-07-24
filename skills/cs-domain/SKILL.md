@@ -6,17 +6,9 @@ argument-hint: "<术语、规则、边界或决定>"
 
 # 权威当前态
 
-只维护“现在为何如此”，不保存讨论过程。
+只维护“现在为何如此”，不保存讨论过程；每轮必读的一两行注意力规则属于 `cs-note`。
 
-## 边界
-
-- `.codestable/requirements/CONTEXT.md`：术语、稳定业务规则、跨模块不变量。
-- `.codestable/architecture/INDEX.md`：工作区与包的拓扑和主题索引。
-- `.codestable/architecture/shared/<topic>.md`：跨包共用契约和事实。
-- `.codestable/architecture/packages/<package>.md`：包边界、差异、依赖与代码锚点。
-- `.codestable/requirements/adrs/<id>-<slug>.md`：存在真实替代方案且回退代价高的决定。
-
-开始归类前，只读[项目记忆模型](references/memory-model.md)的“权威顺序”“按范围加载”和“当前态位置”小节；进入留痕或架构决定分支时再读对应小节。
+开始归类前，只读[项目记忆模型](references/memory-model.md)的“权威顺序”“按范围加载”和“当前态位置”小节；该引用文件是记忆位置与门槛的唯一事实源。进入留痕或架构决定分支时再读对应小节。
 
 ## 步骤
 
