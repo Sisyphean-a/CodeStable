@@ -4,15 +4,13 @@ CodeStable 是一组以项目当前态和可追溯演进为核心的人工智能
 
 ## 安装
 
-Pi 全局安装：
+运行交互式安装：
 
 ```sh
-npx skills@latest add Sisyphean-a/CodeStable --skill "*" --agent pi --global --yes
+npx skills@latest add Sisyphean-a/CodeStable
 ```
 
-`--skill "*"` 表示安装全部技能，`--agent pi` 表示只安装到 Pi。不要使用 `--all`：它还会选择所有检测到的 Agent，其中部分 Agent 不支持全局安装。
-
-其他 Agent 请把 `pi` 换成对应的 Agent ID；若目标不支持全局安装，则去掉 `--global`，安装到当前项目。
+安装器会让你选择需要的技能、目标 Agent 和安装范围。全局安装是否可用取决于所选 Agent。
 
 ## 怎么用
 
