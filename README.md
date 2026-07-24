@@ -4,10 +4,53 @@ CodeStable 是一组以项目当前态和可追溯演进为核心的人工智能
 
 ## 安装
 
+Pi 全局安装：
+
 ```sh
-npx skills@latest add Sisyphean-a/CodeStable --all -g
+npx skills@latest add Sisyphean-a/CodeStable --skill "*" --agent pi --global --yes
 ```
 
-## 技能
+`--skill "*"` 表示安装全部技能，`--agent pi` 表示只安装到 Pi。不要使用 `--all`：它还会选择所有检测到的 Agent，其中部分 Agent 不支持全局安装。
 
-`cs`、`cs-audit`、`cs-brainstorm`、`cs-code-review`、`cs-docs`、`cs-docs-neat`、`cs-domain`、`cs-epic`、`cs-feat`、`cs-goal`、`cs-issue`、`cs-keep`、`cs-note`、`cs-onboard`、`cs-refactor`
+其他 Agent 请把 `pi` 换成对应的 Agent ID；若目标不支持全局安装，则去掉 `--global`，安装到当前项目。
+
+## 怎么用
+
+安装后，技能有两种调用方式：
+
+- **自动调用**：Agent 会根据用户请求和技能描述自行判断是否使用，不需要手动输入 `/skill:`。这是“允许自动触发”，不是每次都保证触发。
+- **手动调用**：只有用户明确输入 `/skill:技能名` 才会触发，适合删除、迁移、长期记忆和自主推进等需要用户确认的动作。
+
+如果希望一次任务稳定走指定流程，直接显式调用：
+
+```text
+/skill:cs-feat 增加一个用户可见的筛选功能
+/skill:cs-issue 修复登录失败的问题
+/skill:cs-refactor 在不改变行为的前提下拆分这个模块
+```
+
+不确定该选哪个时，调用 `/skill:cs`；一次任务只选择一个主技能。高风险改动会按需进入独立审查门禁。
+
+## 技能一览
+
+| 技能 | 调用方式 | 用途 |
+|---|---|---|
+| `cs` | 手动 | 在多个技能之间分诊，选出一个主技能 |
+| `cs-feat` | 自动 | 实现新能力或有意改变行为 |
+| `cs-issue` | 自动 | 诊断并修复违反既定契约的错误 |
+| `cs-refactor` | 自动 | 在保持外部行为不变的前提下重构 |
+| `cs-code-review` | 自动 | 对最终代码差异做独立、对抗性审查 |
+| `cs-domain` | 自动 | 维护项目术语、架构边界、稳定规则和 ADR |
+| `cs-note` | 手动 | 维护 `.codestable/attention.md` 中的一两行必读规则 |
+| `cs-onboard` | 自动 | 初始化项目记忆，或迁移整套旧 `.codestable` |
+| `cs-docs` | 自动 | 编写面向用户或开发者的指南、教程和 API 文档 |
+| `cs-docs-neat` | 手动 | 剪枝已有项目记忆，删除重复或陈旧材料 |
+| `cs-audit` | 自动 | 只读扫描代码、安全、性能或架构风险 |
+| `cs-brainstorm` | 自动 | 探索并收敛尚未确定的产品或技术方向 |
+| `cs-epic` | 自动 | 拆分大型结果并整理无环依赖图 |
+| `cs-goal` | 手动 | 围绕明确终点持续推进并闭合验收证据 |
+| `cs-keep` | 手动 | 将可跨项目复用的经验沉淀到外部知识库 |
+
+## 记忆原则
+
+CodeStable 优先读取项目当前态；只有会影响未来判断的原因、约束和高代价决定才进入项目记忆，普通过程和通过结果留在 Git 或 CI 中。
