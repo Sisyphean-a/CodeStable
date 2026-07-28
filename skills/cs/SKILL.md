@@ -18,15 +18,15 @@ argument-hint: "<请求或问题>"
 | 诊断并修复错误行为 | `cs-issue` |
 | 保持行为不变地改善结构 | `cs-refactor` |
 | 拆分大型能力及依赖 | `cs-epic` |
-| 自主追求明确终点 | `cs-goal` |
 | 写用户或开发者文档 | `cs-docs` |
 | 只读扫描并报告发现 | `cs-audit` |
 | 审查明确代码差异 | `cs-code-review` |
 | 探索并收敛模糊想法 | `cs-brainstorm` |
-| 更新术语、规则、架构或 ADR | `cs-domain` |
-| 添加每轮必读短规则 | `cs-note` |
-| 沉淀跨项目经验 | `cs-keep` |
+| 把已确认结论或每轮必读短规则写入唯一权威当前态 | `cs-domain` |
 | 剪除陈旧项目记忆 | `cs-docs-neat` |
+| 逐问压力测试计划或设计 | `grilling` |
+| 逐问并同步维护领域文档 | `grill-with-docs` |
+| 把未决领域语言、规则与边界讨论清楚 | `domain-modeling` |
 
 ## 步骤
 

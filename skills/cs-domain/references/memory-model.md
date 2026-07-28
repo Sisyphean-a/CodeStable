@@ -7,7 +7,7 @@
 冲突按下列顺序处理：
 
 1. 当前代码和已明确确认的决定。
-2. `architecture/`、`requirements/CONTEXT.md` 与有效架构决定记录。
+2. `architecture/`、`requirements/` 下的领域上下文与有效架构决定记录。
 3. `history/` 和已替代架构决定记录。
 4. 旧任务、审查、审计、探索与迁移文档。
 
@@ -15,12 +15,13 @@
 
 ## 按范围加载
 
-从改动路径确定 `workspace` 或 `package:<name>`。任务开始只读：
+从改动路径确定 `workspace`、`package:<name>` 及其映射的 `context:<name>` 或 `shared:<name>`。任务开始只读：
 
 1. `.codestable/attention.md`；
 2. `.codestable/architecture/INDEX.md`；
 3. 目标包页面和直接依赖的共享页面；
-4. `requirements/CONTEXT.md` 的相关小节。
+4. `requirements/CONTEXT.md` 的作用域地图与工作区条目；
+5. `requirements/shared/<scope>.md` 和 `requirements/contexts/<context>.md` 中与目标直接相关的文件。
 
 只有具体关键词、代码锚点或冲突需要解释原因时才检索架构决定记录、历史或旧证据。默认不加载全部包或全部历史。单仓多包项目只保留一个根 `.codestable`。
 
@@ -29,10 +30,22 @@
 - `architecture/INDEX.md`：范围地图、主题链接、包归属。
 - `architecture/shared/<topic>.md`：一个跨包契约、不变量或共享机制。
 - `architecture/packages/<package>.md`：包职责、公开边界、依赖、共享差异和代码锚点。
-- `requirements/CONTEXT.md`：通用语言、稳定业务规则和跨模块不变量。
+- `requirements/CONTEXT.md`：领域作用域地图，以及整个工作区共同使用的通用语言、稳定业务规则和不变量。
+- `requirements/shared/<scope>.md`：由若干明确领域上下文共同拥有且没有单一所有者的领域语言与规则。
+- `requirements/contexts/<context>.md`：一个领域边界拥有的语言与规则，并映射到实现它的一个或多个包。
 - `requirements/adrs/`：存在真实替代方案且回退代价高的决定。
 
-共享规则不得复制进包页面；包页面只链接并记录本包影响。
+共享事实只在一个权威文件定义；其他范围只链接并记录本范围影响。
+
+## 领域上下文
+
+领域事实按语义所有权归档，而不是按当前讨论位置或代码复用范围归档：
+
+- `workspace`：事实没有更窄的语义所有者，并约束所有相关领域上下文。
+- `context:<name>`：含义由一个领域边界拥有；该边界可映射到一个或多个包。
+- `shared:<name>`：相同含义由若干明确领域边界共同拥有且没有单一所有者；仅仅复用代码不构成共同拥有。
+
+先按语义所有权判断，再看使用范围。包是实现边界，不自动成为领域边界；跨包导入类型、引用标识符或消费事件不会扩大术语作用域。同名概念在不同领域边界中含义不同时分别定义，并在跨边界讨论中使用限定名。作用域未确认前保留歧义，不把事实写入更宽范围。发现已有事实范围过宽或过窄时，把定义移动到正确的唯一文件，并从原位置链接过去。领域上下文的具体版式以[领域上下文格式](domain-context-format.md)为准。
 
 ## 记忆门槛
 
