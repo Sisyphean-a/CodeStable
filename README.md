@@ -12,6 +12,30 @@ npx skills@latest add Sisyphean-a/CodeStable
 
 安装器会让你选择需要的技能、目标 Agent 和安装范围。全局安装是否可用取决于所选 Agent。
 
+安装全部技能，同时继续交互选择目标 Agent：
+
+```sh
+npx skills@latest add Sisyphean-a/CodeStable --skill "*"
+```
+
+## 更新
+
+项目级安装：
+
+```sh
+npx skills@latest update -p
+npx skills@latest add Sisyphean-a/CodeStable --skill "*"
+```
+
+全局安装：
+
+```sh
+npx skills@latest update -g
+npx skills@latest add Sisyphean-a/CodeStable --skill "*" -g
+```
+
+更新命令不要添加 `-y`；发现上游已删除的技能时，按提示确认删除。第二条命令会补齐仓库新增的技能，并继续交互选择目标 Agent。
+
 ## 怎么用
 
 安装后，技能有两种调用方式：
