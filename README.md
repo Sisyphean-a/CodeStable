@@ -49,6 +49,7 @@ npx skills@latest add Sisyphean-a/CodeStable --skill "*" -g
 /skill:cs-feat 增加一个用户可见的筛选功能
 /skill:cs-issue 修复登录失败的问题
 /skill:cs-refactor 在不改变行为的前提下拆分这个模块
+/skill:cs-wayfinder 为这个跨会话的大型目标建立决策地图
 ```
 
 不确定该选哪个时，调用 `/skill:cs`；一次任务只选择一个主技能。高风险改动会按需进入独立审查门禁。
@@ -68,7 +69,7 @@ npx skills@latest add Sisyphean-a/CodeStable --skill "*" -g
 | `cs-docs-neat` | 手动 | 剪枝已有项目记忆，删除重复或陈旧材料 |
 | `cs-audit` | 自动 | 只读扫描代码、安全、性能或架构风险 |
 | `cs-brainstorm` | 自动 | 探索并收敛尚未确定的产品或技术方向 |
-| `cs-epic` | 自动 | 拆分大型结果并整理无环依赖图 |
+| `cs-wayfinder` | 手动 | 为跨会话的大型未知建立或推进持久决策地图 |
 | `grilling` | 自动 | 在执行前逐问压力测试计划或设计 |
 | `grill-with-docs` | 手动 | 持续追问，并同步维护领域模型与必要的架构决定记录 |
 | `domain-modeling` | 自动 | 在讨论中澄清领域语言、规则与边界，产出已确认的模型增量 |

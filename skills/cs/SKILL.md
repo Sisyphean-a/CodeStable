@@ -17,7 +17,7 @@ argument-hint: "<请求或问题>"
 | 新增能力或有意改变行为 | `cs-feat` |
 | 诊断并修复错误行为 | `cs-issue` |
 | 保持行为不变地改善结构 | `cs-refactor` |
-| 拆分大型能力及依赖 | `cs-epic` |
+| 为跨会话的大型未知建立或推进决策地图 | `cs-wayfinder` |
 | 写用户或开发者文档 | `cs-docs` |
 | 只读扫描并报告发现 | `cs-audit` |
 | 审查明确代码差异 | `cs-code-review` |
