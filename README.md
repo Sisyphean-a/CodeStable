@@ -71,7 +71,7 @@ npx skills@latest add Sisyphean-a/CodeStable --skill "*" -g
 | `cs-brainstorm` | 自动 | 探索并收敛尚未确定的产品或技术方向 |
 | `cs-wayfinder` | 手动 | 为跨会话的大型未知建立或推进持久决策地图 |
 | `grilling` | 自动 | 在执行前逐问压力测试计划或设计 |
-| `grill-with-docs` | 手动 | 持续追问，并同步维护领域模型与必要的架构决定记录 |
+| `grill-with-docs` | 手动 | 持续追问，用临时台账保住上下文，并在整体确认后更新项目当前态 |
 | `domain-modeling` | 自动 | 在讨论中澄清领域语言、规则与边界，产出已确认的模型增量 |
 
 ## 记忆原则
