@@ -1,6 +1,10 @@
 # CodeStable
 
-CodeStable 是一组以项目当前态和可追溯演进为核心的人工智能编程技能。
+## 上游项目（Fork 来源）
+
+**本项目 Fork 自：[codestable/CodeStable](https://github.com/codestable/CodeStable)。**
+
+CodeStable 是一组以项目当前态和可追溯演进为核心的人工智能编程技能。对项目的理解永远是第一追求
 
 ## 安装
 
