@@ -17,11 +17,11 @@ argument-hint: "<请求或问题>"
 | 新增能力或有意改变行为 | `cs-feat` |
 | 诊断并修复错误行为 | `cs-issue` |
 | 保持行为不变地改善结构 | `cs-refactor` |
-| 为跨会话的大型未知建立或推进决策地图 | `cs-wayfinder` |
+| 为多个相互依赖的未知建立或推进跨会话决策地图 | `cs-wayfinder` |
 | 写用户或开发者文档 | `cs-docs` |
 | 只读扫描并报告发现 | `cs-audit` |
 | 审查明确代码差异 | `cs-code-review` |
-| 探索并收敛模糊想法 | `cs-brainstorm` |
+| 围绕一个可独立收敛的选择探索实质不同方向 | `cs-brainstorm` |
 | 把已确认结论或每轮必读短规则写入唯一权威当前态 | `cs-domain` |
 | 剪除陈旧项目记忆 | `cs-docs-neat` |
 | 逐问压力测试计划或设计 | `grilling` |

@@ -68,8 +68,8 @@ npx skills@latest add Sisyphean-a/CodeStable --skill "*" -g
 | `cs-docs` | 自动 | 编写面向用户或开发者的指南、教程和 API 文档 |
 | `cs-docs-neat` | 手动 | 剪枝已有项目记忆，删除重复或陈旧材料 |
 | `cs-audit` | 自动 | 只读扫描代码、安全、性能或架构风险 |
-| `cs-brainstorm` | 自动 | 探索并收敛尚未确定的产品或技术方向 |
-| `cs-wayfinder` | 手动 | 为跨会话的大型未知建立或推进持久决策地图 |
+| `cs-brainstorm` | 自动 | 围绕一个单项选择探索并收敛实质不同的产品或技术方向 |
+| `cs-wayfinder` | 手动 | 为多个相互依赖的未知建立或推进跨会话决策地图 |
 | `grilling` | 自动 | 在执行前逐问压力测试计划或设计 |
 | `grill-with-docs` | 手动 | 持续追问，用临时台账保住上下文，并在整体确认后更新项目当前态 |
 | `domain-modeling` | 自动 | 在讨论中澄清领域语言、规则与边界，产出已确认的模型增量 |
