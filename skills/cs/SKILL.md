@@ -24,8 +24,8 @@ argument-hint: "<请求或问题>"
 | 围绕一个可独立收敛的选择探索实质不同方向 | `cs-brainstorm` |
 | 把已确认结论或每轮必读短规则写入唯一权威当前态 | `cs-domain` |
 | 剪除陈旧项目记忆 | `cs-docs-neat` |
-| 逐问压力测试计划或设计 | `grilling` |
-| 逐问并同步维护领域文档 | `grill-with-docs` |
+| 按轮次压力测试计划、决定或想法 | `grilling` |
+| 按轮次访谈并在整体确认后维护项目当前态 | `grill-with-docs` |
 | 把未决领域语言、规则与边界讨论清楚 | `domain-modeling` |
 
 ## 步骤

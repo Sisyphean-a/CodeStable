@@ -6,7 +6,7 @@ code-paths:
 
 # 技能包
 
-本包把每项能力作为一个独立的 `SKILL.md` 分发。根 `README.md` 负责面向用户的安装和使用说明；技能目录不依赖仓库内的构建、插件或服务运行时。
+本包把每项能力作为一个独立的 `SKILL.md` 分发；技能责任边界遵循[领域上下文](../../requirements/CONTEXT.md)。根 `README.md` 负责面向用户的安装和使用说明；技能目录不依赖仓库内的构建、插件或服务运行时。
 
 ## 公开边界
 
@@ -25,6 +25,8 @@ code-paths:
 ## 关键依赖与边界
 
 - `cs-domain` 的项目记忆规则唯一由 `skills/cs-domain/references/memory-model.md` 定义；`cs-onboard`、`grill-with-docs` 和 `cs-wayfinder` 按需引用它。
+- `grilling` 唯一定义设计树、轮次和前沿；调用它的技能只维护自身状态，不复制访谈算法。
+- `cs-issue` 默认走轻量修复；故障风险或记录价值需要更强证据时，才披露诊断循环。`cs-code-review` 分开判断项目标准与需求符合度；`cs-feat` 只在低成本稳定测试面存在时使用红绿垂直切片。
 - 模块边界发生变化时，`cs-feat`、`cs-refactor` 和 `cs-code-review` 按需使用 `skills/cs-refactor/references/module-depth.md`。
 - 单个可在当前会话收敛的选择由 `cs-brainstorm` 处理；跨会话、多个相互依赖未知由 `cs-wayfinder` 建图推进。规范定义见[领域上下文](../../requirements/CONTEXT.md)。
 
@@ -34,6 +36,10 @@ code-paths:
 - `skills/cs-domain/SKILL.md`
 - `skills/cs-domain/references/memory-model.md`
 - `skills/cs-refactor/references/module-depth.md`
+- `skills/cs-issue/SKILL.md`
+- `skills/cs-code-review/SKILL.md`
+- `skills/cs-feat/SKILL.md`
 - `skills/cs-wayfinder/SKILL.md`
 - `skills/cs-brainstorm/SKILL.md`
+- `skills/grilling/SKILL.md`
 - `skills/grill-with-docs/SKILL.md`

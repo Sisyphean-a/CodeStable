@@ -66,7 +66,7 @@ npx skills@latest add Sisyphean-a/CodeStable --skill "*" -g
 | `cs-feat` | 自动 | 实现新能力或有意改变行为 |
 | `cs-issue` | 自动 | 诊断并修复违反既定契约的错误 |
 | `cs-refactor` | 自动 | 在保持外部行为不变的前提下重构 |
-| `cs-code-review` | 自动 | 对最终代码差异做独立、对抗性审查 |
+| `cs-code-review` | 自动 | 分开审查项目标准与需求符合度 |
 | `cs-domain` | 自动 | 把已确认的术语、规则、架构边界、决定和每轮必读规则写入唯一权威当前态 |
 | `cs-onboard` | 手动 | 初始化项目记忆，或迁移整套旧 `.codestable` |
 | `cs-docs` | 自动 | 编写面向用户或开发者的指南、教程和 API 文档 |
@@ -74,8 +74,8 @@ npx skills@latest add Sisyphean-a/CodeStable --skill "*" -g
 | `cs-audit` | 自动 | 只读扫描代码、安全、性能或架构风险 |
 | `cs-brainstorm` | 自动 | 围绕一个单项选择探索并收敛实质不同的产品或技术方向 |
 | `cs-wayfinder` | 手动 | 为多个相互依赖的未知建立或推进跨会话决策地图 |
-| `grilling` | 自动 | 在执行前逐问压力测试计划或设计 |
-| `grill-with-docs` | 手动 | 持续追问，用临时台账保住上下文，并在整体确认后更新项目当前态 |
+| `grilling` | 自动 | 按设计树轮次压力测试计划、决定或想法 |
+| `grill-with-docs` | 手动 | 按轮次追问，用临时台账保住上下文，并在整体确认后更新项目当前态 |
 | `domain-modeling` | 自动 | 在讨论中澄清领域语言、规则与边界，产出已确认的模型增量 |
 
 ## 记忆原则
