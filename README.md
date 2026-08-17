@@ -40,6 +40,23 @@ npx skills@latest add Sisyphean-a/CodeStable --skill "*" -g
 
 更新命令不要添加 `-y`；发现上游已删除的技能时，按提示确认删除。第二条命令会补齐仓库新增的技能，并继续交互选择目标 Agent。
 
+## 项目面板
+
+本仓库内的 `dashboard/` 提供可选的本地只读面板，需要 Node.js 20 或更高版本。克隆仓库后执行一次：
+
+```sh
+cd dashboard
+npm link
+```
+
+`npm link` 会把当前检出的 `dashboard/` 作为本机链接安装，因此源码更新后不需要重新安装。进入任何带 `.codestable/` 的项目目录后运行：
+
+```sh
+cs web
+```
+
+命令会打开 `http://127.0.0.1:43173`，并在 `.codestable/`、`.wayfinding/`、`.delivery/` 或 Git 状态变化时自动刷新页面。`cs web --no-open` 不自动打开浏览器，`cs web --port 4400` 可指定端口；找不到 `.codestable/` 时命令退出，不展示面板。
+
 ## 怎么用
 
 安装后，技能有两种调用方式：
@@ -66,7 +83,7 @@ npx skills@latest add Sisyphean-a/CodeStable --skill "*" -g
 ## 技能一览
 
 | 技能 | 调用方式 | 用途 |
-|---|---|---|
+| --- | --- | --- |
 | `cs` | 手动 | 在多个技能之间分诊，选出一个主技能 |
 | `cs-feat` | 自动 | 实现新能力或有意改变行为 |
 | `cs-issue` | 自动 | 诊断并修复违反既定契约的错误 |

@@ -4,11 +4,12 @@ scope: workspace
 
 # 领域上下文
 
-CodeStable 为 AI 编程工作提供可安装的技能，并把项目理解建立在当前代码、明确决定和可追溯演进之上。
+CodeStable 为 AI 编程工作提供可安装的技能和可选的本地只读仪表盘，并把项目理解建立在当前代码、明确决定和可追溯演进之上。
 
 ## 作用域
 
-- `package:skills`：唯一实现包，见[技能包](../architecture/packages/skills.md)。
+- `package:skills`：技能包，见[技能包](../architecture/packages/skills.md)。
+- `package:dashboard`：本地只读仪表盘，见[仪表盘包](../architecture/packages/dashboard.md)。
 - 当前没有独立的 `context:` 或 `shared:` 领域上下文；出现由特定语义边界拥有的事实后再建立。
 
 ## 通用语言
@@ -21,7 +22,8 @@ CodeStable 为 AI 编程工作提供可安装的技能，并把项目理解建�
 
 ## 稳定规则
 
-- 用户通过 `README.md` 中的 `npx skills` 安装或更新技能；仓库不提供插件、服务或本地运行时作为替代安装方式。
+- 用户通过 `README.md` 中的 `npx skills` 安装或更新技能；可选仪表盘在仓库的 `dashboard/` 中通过 `npm link` 本机链接安装，`cs web` 不是技能安装的替代路径。
+- 仪表盘只监听 `127.0.0.1`，只读取项目当前态、规划面和 Git 派生状态；它不能成为认领、关闭或写入项目记忆的旁路。
 - 每个技能只拥有一个外部结果或一套可复用纪律；用户调用技能之间通过规格、工单和链接显式交接，不在一次调用中自动串联多个阶段。
 - 项目记忆的价值门槛、规范格式、唯一归属和检索标准以[项目记忆模型](../../skills/cs-domain/references/memory-model.md)为唯一依据。
 - 确认后的事实必须只有一个当前权威位置；历史和 Pi 会话只说明原因与证据，不能覆盖当前态。
@@ -32,6 +34,7 @@ CodeStable 为 AI 编程工作提供可安装的技能，并把项目理解建�
 ## 代码锚点
 
 - `README.md`
+- `dashboard/src/dashboard.js`
 - `skills/cs-domain/references/memory-model.md`
 - `skills/cs-brainstorm/SKILL.md`
 - `skills/cs-wayfinder/SKILL.md`

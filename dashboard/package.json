@@ -1,0 +1,16 @@
+{
+  "name": "codestable-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local dashboard for CodeStable project state",
+  "type": "module",
+  "bin": {
+    "cs": "./bin/cs.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
