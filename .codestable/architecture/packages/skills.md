@@ -26,8 +26,8 @@ code-paths:
 
 - `cs-domain` 的项目记忆规则唯一由 `skills/cs-domain/references/memory-model.md` 定义；`cs-onboard`、`grill-with-docs` 和 `cs-wayfinder` 按需引用它。
 - `grilling` 唯一定义设计树、轮次和前沿；调用它的技能只维护自身状态，不复制访谈算法。
-- `cs-wayfinder` 只解决决策网络；完成地图由用户显式交给 `cs-to-spec` 折叠规格，再由 `cs-to-tickets` 生成带硬依赖的示踪弹工单。`cs-implement` 每次认领一个实施前沿，并按工单类型复用 `cs-feat`、`cs-issue` 或 `cs-refactor` 的交付纪律。
-- 本地交付面的规格、工单格式和前沿规则唯一由 `skills/cs-to-tickets/references/delivery-surface.md` 定义；交付状态不进入 `.codestable`。
+- `cs-wayfinder` 只解决决策网络；完成地图由用户显式交给 `cs-to-spec` 折叠规格，再由 `cs-to-tickets` 生成带硬依赖的示踪弹工单。`cs-implement` 每次认领一张实施前沿，并按工单类型复用 `cs-feat`、`cs-issue` 或 `cs-refactor` 的交付纪律。
+- 本地交付面的规格、工单格式和前沿规则唯一由 `skills/cs-to-tickets/references/delivery-surface.md` 定义；中间工单只更新交付面，全部工单关闭后才按完整规格合并裁决项目记忆。
 - `cs-issue` 默认走轻量修复；故障风险或记录价值需要更强证据时，才披露诊断循环。`cs-code-review` 分开判断项目标准与需求符合度；`cs-feat` 只在低成本稳定测试面存在时使用红绿垂直切片。
 - 模块边界发生变化时，`cs-feat`、`cs-refactor` 和 `cs-code-review` 按需使用 `skills/cs-refactor/references/module-depth.md`。
 - 单个可在当前会话收敛的选择由 `cs-brainstorm` 处理；跨会话、多个相互依赖未知由 `cs-wayfinder` 建图推进。规范定义见[领域上下文](../../requirements/CONTEXT.md)。
