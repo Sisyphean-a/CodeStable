@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CodeStable 项目全景</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script type="module" src="/assets/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="?view=overview" data-view="overview">CodeStable 项目全景</a>
+    <nav id="nav" aria-label="主导航">
+      <a href="?view=overview" data-view="overview">概览</a>
+      <a href="?view=state" data-view="state">当前态</a>
+      <a href="?view=wayfinding" data-view="wayfinding">探路</a>
+      <a href="?view=delivery" data-view="delivery">交付</a>
+      <a href="?view=history" data-view="history">历史</a>
+      <a href="?view=documents" data-view="documents">文档</a>
+      <a href="?view=relations" data-view="relations">关系</a>
+    </nav>
+    <div id="snapshot-state" class="snapshot-state" role="status"></div>
+  </header>
+  <main id="app"></main>
+</body>
+</html>

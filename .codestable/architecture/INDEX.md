@@ -23,4 +23,7 @@
 - `skills/*/SKILL.md`
 - `dashboard/bin/cs.js`
 - `dashboard/src/dashboard.js`
+- `dashboard/src/project/index.js`
+- `dashboard/src/server/refresh-store.js`
+- `dashboard/src/web/app.js`
 - `skills/cs-domain/references/memory-model.md`

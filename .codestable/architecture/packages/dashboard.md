@@ -6,30 +6,37 @@ code-paths:
 
 # 仪表盘包
 
-本包提供本地只读 Web 仪表盘。`npm link` 将 `dashboard/bin/cs.js` 注册为本机 `cs` 命令；在任意 CodeStable 项目目录执行 `cs web` 后，它向上查找最近的 `.codestable`，在 `127.0.0.1` 启动服务并打开浏览器。
+本包提供本地只读 Web 仪表盘（dashboard v2.0 项目全景工作台）。`npm link` 将 `dashboard/bin/cs.js` 注册为本机 `cs` 命令；在任意 CodeStable 项目目录执行 `cs web` 后，它向上查找最近的 `.codestable`，在 `127.0.0.1` 启动服务并打开浏览器。
 
 ## 公开边界
 
 - `cs web [--port <port>] [--no-open]`：启动一次本地仪表盘；没有 `.codestable` 时以错误退出。
 - 服务只监听 `127.0.0.1`，不提供远程访问、认证或写入端点。
-- 页面读取 `.codestable/`、可选的 `.wayfinding/` 和 `.delivery/`、Git 状态及仓库内 `skills/`；轮询这些输入并通过 Server-Sent Events 刷新浏览器。
+- 页面读取 `.codestable/`、可选的 `.wayfinding/` 和 `.delivery/`、Git 状态及仓库内 `skills/`；轮询这些输入并通过 Server-Sent Events 局部刷新浏览器。
+- 兼容入口：`startDashboard`、`createSnapshot` 与 `GET /api/snapshot` 保留；快照与所有页面投影只由 `ProjectIndex` 派生。
 
 ## 职责与边界
 
 - `bin/cs.js` 只分发命令并报告用户输入错误。
-- `src/dashboard.js` 拥有项目发现、Markdown frontmatter 派生状态、快照、HTTP/SSE 和浏览器启动。
+- 每次扫描构建一个有类型的只读 `ProjectIndex`（`schemaVersion`、`project`、`sources`、`entities`、`relations`、`diagnostics`、`generatedAt`）；资料源只解析一次，页面与 API 只能消费索引投影，不能各自重新解释项目文件。
+- 实体使用稳定 ID（`<kind>:<仓库相对路径>`、`HistoryEntry:<月文件>:<日期>:<序号>`、`GitCommit:<完整hash>`、`CodeAnchor:<符号>`），不泄露 Windows 绝对路径；decision/ticket readiness（frontier/ready、claimed、blocked、none、unknown）从状态、认领者与硬依赖派生，不写回项目文件。
+- 正式关系只来自目录契约、规范字段、Markdown 链接、当前依据、来源、evidence、代码锚点和可验证 Git 事实，保留 `kind`、provenance 与 `resolved | unresolved | external | unsafe` 解析状态；反向引用由同一关系派生。
+- 诊断（`error | warning | info`）覆盖缺失、未知枚举、重复 ID、坏链接、缺失依赖、越界路径、历史格式错误、读取失败与 Git 不可用；缺失、冲突、未知和失败不得静默降级为成功或空集合。
+- 刷新以完整新索引的原子替换为准；重建失败保留最后成功快照并公开 `stale` 状态（SSE 事件 `snapshot-changed` / `snapshot-stale`），页面局部重取数据并保持 URL、选择、筛选、图展开深度与滚动位置。
 - 仪表盘只展示派生结果，不认领或关闭决策项、工单，也不写入 `.codestable`、规划面或 Git。
 
-## 已确认的 v2 演进目标
+## 模块结构
 
-当前实现仍以上述单文件为准；以下是已经确认、将在完整 v2.0 中替换该实现的架构边界，不能误读为已落地代码：
+- `src/project/`：`root.js`（项目根发现）、`sources.js`（资料枚举与 SourceDocument，含 raw 原文与按元数据缓存复用）、`markdown.js`（frontmatter/标题锚点/显式链接）、`index.js`（ProjectIndex 构建、实体、历史解析、Git 扫描）、`relations.js`（正式关系与目标解析）、`diagnostics.js`、`projections.js`（兼容快照投影 + 首页导读）、`entity-detail.js`（实体详情/原文投影与 ID 安全校验）、`search.js`（结构化搜索）、`history.js`（语义历史时间线）、`graph.js`（decision/ticket 依赖 DAG）、`relation-graph.js`（局部关系图）。
+- `src/server/`：`refresh-store.js`（指纹轮询、完整重建、原子替换、stale）、`static.js`（同源静态资源与安全头）、`markdown-render.js`（受限 markdown-it 渲染：html 关闭、linkify/图片禁用、链接按解析状态应用安全规则）。
+- `src/web/`：`index.html` + `app.js`（History API 路由、SSE 协调、视图分发）+ `views/*.js`（八个视图纯函数）+ `graph.js`（原生 SVG 有界图布局）+ `styles.css`（编辑式极简）。
+- API：`/api/snapshot`、`/api/entities/:id`、`/api/entities/:id/raw`、`/api/search`、`/api/history`、`/api/graph`、`/api/relations`、`/events`；客户端只按稳定实体 ID 请求，静态资源与 API 拒绝路径穿越，响应带明确 MIME、`nosniff` 与同源 CSP。
 
-- Dashboard 继续是 Node.js 20+ 的本机只读环回服务，保留 `cs web`、`127.0.0.1`、HTTP/SSE 和无写入端点；不引入远程访问、认证、编辑或项目管理能力。
-- 每次扫描只构建一个有类型的只读 `ProjectIndex`；资料源只解析一次，页面与 API 只能从索引投影读取实体、显式关系和诊断，不能各自重新解释项目文件。
-- 服务端按模块拆分资料读取/解析、索引、关系、诊断、投影、HTTP、刷新和静态资源；客户端使用原生 ESM、History API 和原生 SVG，不引入前端框架、构建链或图形/状态库。唯一生产依赖为受限配置的 `markdown-it`。
-- 刷新以完整新索引的原子替换为准；重建失败保留最后成功快照并公开 `stale` 诊断，页面局部重取数据且尽可能保持 URL、选择、筛选、阅读位置和焦点。
-- v2.0 只在项目导读、阅读、文档发现、历史、探路、交付和关系探索组成完整理解闭环后发布。实施依次经过可信阅读核心、发现与演变、当前工作、关系与发布硬化四个切片；中间切片不是公开 v2。
-- 质量门禁以 Node 契约、HTTP/SSE、安全、性能和页面投影测试为强制条件；Chrome/Edge 的键盘、移动、刷新和视觉规范使用留有记录的手工发布清单。首版不引入浏览器自动化。
+## 依赖与质量
+
+- 唯一生产依赖：`markdown-it`（受限配置）。客户端无框架、无构建链、无图形/状态库；原生 ESM + History API + 原生 SVG。
+- 自动化测试只用 Node 20 内置 `node:test`：`npm test` 覆盖正常、错误、安全、SSE/stale、图文投影、Colombia 形状与规模 fixture（≥250 SourceDocument、100 decision/ticket、2000 历史条目、1000 正式关系）；性能门槛为完整索引构建中位值 ≤2 秒、热索引投影 ≤200 ms、变更到 SSE ≤3 秒。
+- 浏览器可用性（键盘/焦点、移动单列、reduced motion、深链接、Back/Forward、极简视觉）由 Chrome/Edge 人工发布清单验收，首版不引入浏览器自动化。
 
 完整依据与逐项验收条件见 [dashboard 项目全景工作台决策地图](../../../.wayfinding/dashboard-project-atlas/map.md)。
 
@@ -38,4 +45,9 @@ code-paths:
 - `dashboard/package.json`
 - `dashboard/bin/cs.js`
 - `dashboard/src/dashboard.js`
+- `dashboard/src/project/index.js`
+- `dashboard/src/project/projections.js`
+- `dashboard/src/server/refresh-store.js`
+- `dashboard/src/web/app.js`
 - `dashboard/test/dashboard.test.js`
+- `dashboard/test/scale.test.js`

@@ -29,7 +29,11 @@ async function fixture() {
   );
   await writeFile(
     join(root, ".codestable", "history", "2026-08.md"),
-    "# 2026-08\n\n- 2026-08-01 · [功能] One\n",
+    "# 2026-08\n\n" +
+      "- 2026-08-01 · [功能] One. 范围：workspace\n" +
+      "  原因：reason one\n" +
+      "  当前依据：[架构索引](../architecture/INDEX.md)。\n" +
+      "  证据：代码锚点 `dashboard/src/dashboard.js`。\n",
   );
   await writeFile(
     join(root, ".wayfinding", "sample", "map.md"),
@@ -80,23 +84,31 @@ test("discovers the nearest CodeStable project and derives map and delivery prog
   const snapshot = await createSnapshot(root);
 
   assert.equal(snapshot.project.name, "Fixture Project");
-  assert.deepEqual(snapshot.maps[0], {
-    name: "Sample Map",
-    path: ".wayfinding/sample/map.md",
-    closed: 1,
-    open: 2,
-    blocked: 1,
-    frontier: 1,
-    fog: 1,
-    progress: 25,
-  });
+  const map = snapshot.maps[0];
+  assert.equal(map.name, "Sample Map");
+  assert.equal(map.path, ".wayfinding/sample/map.md");
+  assert.equal(map.closed, 1);
+  assert.equal(map.open, 2);
+  assert.equal(map.unknown, 0);
+  assert.equal(map.blocked, 0);
+  assert.equal(map.frontier, 1);
+  assert.equal(map.claimed, 1);
+  assert.equal(map.fog, 1);
+  assert.equal(map.progress, 25);
+  assert.equal(map.validity, "valid");
+  assert.equal(map.decisions.length, 3);
+  assert.equal(map.decisions[1].readiness, "frontier");
+  assert.equal(map.decisions[2].readiness, "claimed");
   assert.equal(snapshot.deliveries[0].hasSpec, true);
   assert.equal(snapshot.deliveries[0].closed, 1);
-  assert.equal(snapshot.deliveries[0].blocked, 1);
+  assert.equal(snapshot.deliveries[0].blocked, 0);
   assert.equal(snapshot.deliveries[0].ready, 1);
   assert.equal(snapshot.deliveries[0].claimed, 1);
   assert.equal(snapshot.deliveries[0].progress, 33);
+  assert.equal(snapshot.deliveries[0].tickets.length, 3);
   assert.equal(snapshot.history[0].entries, 1);
+  assert.equal(snapshot.snapshot.status, "fresh");
+  assert.equal(snapshot.schemaVersion, 1);
 });
 
 test("refreshes the served snapshot after a tracked project file changes", async (t) => {
@@ -112,24 +124,42 @@ test("refreshes the served snapshot after a tracked project file changes", async
     });
   });
 
-  const before = await fetch(`${dashboard.address}/api/snapshot`).then(
-    (response) => response.json(),
-  );
-  const page = await fetch(dashboard.address).then((response) =>
-    response.text(),
-  );
-  const script = page.match(/<script>([\s\S]*?)<\/script>/)?.[1];
-  assert.ok(script, "dashboard page must contain a client script");
-  assert.doesNotThrow(() => new Function(script));
+  const fetchJson = (url) =>
+    fetch(url, { signal: AbortSignal.timeout(5000) }).then((response) =>
+      response.json(),
+    );
+  const before = await fetchJson(`${dashboard.address}/api/snapshot`);
+  const page = await fetch(dashboard.address, {
+    signal: AbortSignal.timeout(5000),
+  }).then((response) => response.text());
+  assert.match(page, /<script type="module" src="\/assets\/app\.js">/);
+  assert.match(page, /<nav[^>]*aria-label="主导航"/);
+  assert.match(page, /\?view=overview/);
+  assert.match(page, /\?view=delivery/);
+  const appJs = await fetch(`${dashboard.address}/assets/app.js`, {
+    signal: AbortSignal.timeout(5000),
+  }).then((response) => response.text());
+  assert.match(appJs, /EventSource/);
+  assert.match(appJs, /history\.pushState/);
+  assert.match(appJs, /popstate/);
 
+  const historyText = (dates) =>
+    "# 2026-08\n\n" +
+    dates
+      .map(
+        (date) =>
+          `- ${date} · [功能] Change ${date}. 范围：workspace\n` +
+          `  原因：reason ${date}\n` +
+          `  当前依据：[架构索引](../architecture/INDEX.md)。\n` +
+          `  证据：代码锚点 \`dashboard/src/dashboard.js\`。\n`,
+      )
+      .join("\n");
   await writeFile(
     join(root, ".codestable", "history", "2026-08.md"),
-    "# 2026-08\n\n- 2026-08-01 · [功能] One\n- 2026-08-02 · [功能] Two\n",
+    historyText(["2026-08-01", "2026-08-02"]),
   );
   await new Promise((resolveWait) => setTimeout(resolveWait, 900));
-  const after = await fetch(`${dashboard.address}/api/snapshot`).then(
-    (response) => response.json(),
-  );
+  const after = await fetchJson(`${dashboard.address}/api/snapshot`);
 
   assert.equal(before.history[0].entries, 1);
   assert.equal(after.history[0].entries, 2);
