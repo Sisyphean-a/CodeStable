@@ -18,12 +18,12 @@ argument-hint: "<请求或问题>"
 | 诊断并修复错误行为 | `cs-issue` |
 | 保持行为不变地改善结构 | `cs-refactor` |
 | 为多个相互依赖的未知建立或推进跨会话决策地图 | `cs-wayfinder` |
-| 把已确认对话、决策地图或需求折叠成实施规格 | `cs-to-spec` |
-| 把已确认规格拆成带硬依赖的垂直实施工单 | `cs-to-tickets` |
-| 从已确认交付面领取并完成一个实施变化单元 | `cs-implement` |
+| 已确认输入缺少稳定交付契约，或多个来源需要合成验收 | `cs-to-spec` |
+| 把已确认规格或 ticket-ready 地图拆成垂直实施工单 | `cs-to-tickets` |
+| 从已确认交付面实现并独立验收一个变化单元 | `cs-implement` |
 | 写用户或开发者文档 | `cs-docs` |
 | 只读扫描并报告发现 | `cs-audit` |
-| 审查明确代码差异 | `cs-code-review` |
+| 审查明确代码差异或独立验收候选工单 | `cs-code-review` |
 | 围绕一个可独立收敛的选择探索实质不同方向 | `cs-brainstorm` |
 | 把已确认结论或每轮必读短规则写入唯一权威当前态 | `cs-domain` |
 | 剪除陈旧项目记忆 | `cs-docs-neat` |

@@ -71,12 +71,12 @@ cs web
 /skill:cs-issue 修复登录失败的问题
 /skill:cs-refactor 在不改变行为的前提下拆分这个模块
 /skill:cs-wayfinder 为这个跨会话的大型目标建立决策地图
-/skill:cs-to-spec 把这张已完成地图折叠成实施规格
-/skill:cs-to-tickets 把这份规格拆成实施工单
-/skill:cs-implement 从这个交付面领取并完成下一张工单
+/skill:cs-to-tickets 把这张已完成地图或现行规格拆成实施工单
+/skill:cs-to-spec 为这些跨来源决定合成统一验收和横切门禁
+/skill:cs-implement 从这个交付面实现并独立验收下一张工单
 ```
 
-大型目标的显式交接是 `cs-wayfinder` → `cs-to-spec` → `cs-to-tickets` → `cs-implement`；每次调用仍只产生一个阶段结果，不会在后台自动串联。
+大型目标默认按 `cs-wayfinder` → `cs-to-tickets` → `cs-implement` 交接。`cs-to-tickets` 发现跨决定结果、横切门禁、来源冲突或未晋升原型等 synthesis debt 时停止，再显式调用 `cs-to-spec` 合成精简验收规格，然后返回拆票。每次调用只处理一个阶段或一张工单；`cs-implement` 在关闭前派发不继承实现上下文的独立审查。
 
 不确定该选哪个时，调用 `/skill:cs`；一次任务只选择一个主技能。高风险改动会按需进入独立审查门禁。
 
@@ -88,7 +88,7 @@ cs web
 | `cs-feat` | 自动 | 实现新能力或有意改变行为 |
 | `cs-issue` | 自动 | 诊断并修复违反既定契约的错误 |
 | `cs-refactor` | 自动 | 在保持外部行为不变的前提下重构 |
-| `cs-code-review` | 自动 | 分开审查项目标准与需求符合度 |
+| `cs-code-review` | 自动 | 审查项目标准与需求符合度，或独立验收候选工单 |
 | `cs-domain` | 自动 | 把已确认的术语、规则、架构边界、决定和每轮必读规则写入唯一权威当前态 |
 | `cs-onboard` | 手动 | 初始化项目记忆，或迁移整套旧 `.codestable` |
 | `cs-docs` | 自动 | 编写面向用户或开发者的指南、教程和 API 文档 |
@@ -96,9 +96,9 @@ cs web
 | `cs-audit` | 自动 | 只读扫描代码、安全、性能或架构风险 |
 | `cs-brainstorm` | 自动 | 围绕一个单项选择探索并收敛实质不同的产品或技术方向 |
 | `cs-wayfinder` | 手动 | 为多个相互依赖的未知建立或推进跨会话决策地图 |
-| `cs-to-spec` | 手动 | 把已确认对话、地图或需求折叠成一份实施规格 |
-| `cs-to-tickets` | 手动 | 把规格拆成带硬依赖的可交付垂直工单 |
-| `cs-implement` | 手动 | 领取并完成交付面中的下一张实施前沿工单 |
+| `cs-to-spec` | 手动 | 已确认输入缺少稳定契约或存在 synthesis debt 时合成精简验收规格 |
+| `cs-to-tickets` | 手动 | 把规格或 ticket-ready 地图拆成带硬依赖的垂直工单 |
+| `cs-implement` | 手动 | 实现并独立验收交付面中的下一张实施前沿工单 |
 | `grilling` | 自动 | 按设计树轮次压力测试计划、决定或想法 |
 | `grill-with-docs` | 手动 | 按轮次追问，用临时台账保住上下文，并在整体确认后更新项目当前态 |
 | `domain-modeling` | 自动 | 在讨论中澄清领域语言、规则与边界，产出已确认的模型增量 |
