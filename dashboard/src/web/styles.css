@@ -60,6 +60,21 @@ a:focus-visible, button:focus-visible {
   white-space: nowrap;
   letter-spacing: 0.02em;
 }
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.83rem;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.nav-toggle:hover { background: var(--neutral-bg); }
 #nav { display: flex; gap: 4px; flex-wrap: wrap; }
 #nav a {
   color: var(--ink-soft);
@@ -282,6 +297,38 @@ h3 { font-size: 1rem; font-weight: 600; margin: 18px 0 6px; }
 /* 移动端单列 */
 @media (max-width: 720px) {
   .topbar { flex-wrap: wrap; padding: 10px 14px; gap: 10px; }
+  .nav-toggle { display: inline-flex; position: relative; z-index: 30; }
+  #nav {
+    position: fixed;
+    z-index: 20;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(20rem, calc(100vw - 3rem));
+    max-width: 100%;
+    padding: 72px 16px 24px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 4px;
+    overflow-y: auto;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    box-shadow: -8px 0 20px rgba(51, 48, 43, 0.08);
+    transform: translateX(100%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 160ms ease;
+  }
+  #nav.is-open {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+  #nav a {
+    padding: 10px 12px;
+    font-size: 1rem;
+  }
   main { padding: 24px 14px 56px; }
   h1 { font-size: 1.4rem; }
   .snapshot-state { margin-left: 0; width: 100%; }

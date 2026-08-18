@@ -2,7 +2,9 @@
 // 概览与导航的稳定输出以纯字符串由 Node 断言。
 
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { promisify } from "node:util";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -17,6 +19,8 @@ import { renderDocuments } from "../src/web/views/documents.js";
 import { renderRelations } from "../src/web/views/relations.js";
 import { renderReader } from "../src/web/views/reader.js";
 
+const execFileAsync = promisify(execFile);
+
 const HISTORY_ENTRY = (date) =>
   `- ${date} · [功能] Result. 范围：workspace\n` +
   `  原因：reason\n` +
@@ -26,6 +30,10 @@ const HISTORY_ENTRY = (date) =>
 async function projectFixture() {
   const root = await mkdtemp(join(tmpdir(), "codestable-views-"));
   await mkdir(join(root, ".codestable", "architecture"), { recursive: true });
+  await mkdir(join(root, ".codestable", "architecture", "packages"), {
+    recursive: true,
+  });
+  await mkdir(join(root, ".codestable", "requirements"), { recursive: true });
   await mkdir(join(root, ".codestable", "history"), { recursive: true });
   await mkdir(join(root, ".wayfinding", "sample", "decisions"), {
     recursive: true,
@@ -35,7 +43,15 @@ async function projectFixture() {
 
   await writeFile(
     join(root, ".codestable", "architecture", "INDEX.md"),
-    "# Fixture Project\n\n## 代码锚点\n- `dashboard/src/dashboard.js`\n",
+    "# Fixture Project\n\nA project summary for the overview.\n\n## 范围地图\n- workspace\n\n## 公开边界\n- Fixture dashboard boundary\n\n## 代码锚点\n- `dashboard/src/dashboard.js`\n",
+  );
+  await writeFile(
+    join(root, ".codestable", "architecture", "packages", "dashboard.md"),
+    "---\nscope: package:dashboard\ncode-paths:\n  - dashboard/src/dashboard.js\n---\n\n# Dashboard Package\n\n## 公开边界\n- Dashboard package boundary\n\n## 代码锚点\n- `dashboard/src/web/views/overview.js`\n",
+  );
+  await writeFile(
+    join(root, ".codestable", "requirements", "CONTEXT.md"),
+    "---\nscope: workspace\n---\n\n# Domain Context\n\nWorkspace domain context.\n",
   );
   await writeFile(
     join(root, ".codestable", "attention.md"),
@@ -70,11 +86,143 @@ async function projectFixture() {
     "---\n交付类型: 功能\n状态: 打开\n认领者: \"\"\n硬依赖: [01-closed.md]\n---\n\n# Ready Ticket\n",
   );
   await writeFile(
+    join(root, ".delivery", "sample", "tickets", "03-claimed.md"),
+    "---\n交付类型: 功能\n状态: 打开\n认领者: alice\n硬依赖: []\n---\n\n# Claimed Ticket\n",
+  );
+  await writeFile(
+    join(root, ".delivery", "sample", "tickets", "04-blocked.md"),
+    "---\n交付类型: 缺陷\n状态: 打开\n认领者: \"\"\n硬依赖: [missing-ticket.md]\n---\n\n# Blocked Ticket\n",
+  );
+  await writeFile(
     join(root, "skills", "sample-skill", "SKILL.md"),
     "---\nname: sample-skill\ndescription: A skill\n---\n\n# Skill\n",
   );
   await writeFile(join(root, "README.md"), "# Fixture Project\n");
   return root;
+}
+
+function navigationDom() {
+  const documentListeners = new Map();
+  const document = {
+    activeElement: null,
+    title: "",
+    addEventListener(type, listener) {
+      const listeners = documentListeners.get(type) ?? [];
+      listeners.push(listener);
+      documentListeners.set(type, listeners);
+    },
+    dispatchEvent(event) {
+      for (const listener of documentListeners.get(event.type) ?? []) {
+        listener(event);
+      }
+    },
+  };
+
+  const createElement = (tagName) => {
+    const listeners = new Map();
+    const attributes = new Map();
+    const classes = new Set();
+    const element = {
+      tagName: tagName.toUpperCase(),
+      children: [],
+      dataset: {},
+      innerHTML: "",
+      textContent: "",
+      addEventListener(type, listener) {
+        const handlers = listeners.get(type) ?? [];
+        handlers.push(listener);
+        listeners.set(type, handlers);
+      },
+      dispatchEvent(event) {
+        event.target ??= element;
+        event.currentTarget = element;
+        for (const listener of listeners.get(event.type) ?? []) {
+          listener(event);
+        }
+      },
+      click() {
+        element.dispatchEvent({ type: "click", target: element });
+      },
+      focus() {
+        document.activeElement = element;
+      },
+      setAttribute(name, value) {
+        attributes.set(name, String(value));
+      },
+      getAttribute(name) {
+        return attributes.get(name) ?? null;
+      },
+      removeAttribute(name) {
+        attributes.delete(name);
+      },
+      classList: {
+        toggle(name, force) {
+          const next = force ?? !classes.has(name);
+          if (next) classes.add(name);
+          else classes.delete(name);
+          return next;
+        },
+        contains(name) {
+          return classes.has(name);
+        },
+      },
+      querySelector(selector) {
+        if (selector === "a[href]") {
+          return element.children.find((child) => child.tagName === "A") ?? null;
+        }
+        return null;
+      },
+      querySelectorAll(selector) {
+        if (selector.includes("a[href]")) {
+          return element.children.filter((child) => child.tagName === "A");
+        }
+        return [];
+      },
+      contains(target) {
+        return target === element || element.children.some((child) => child.contains(target));
+      },
+      closest(selector) {
+        if (selector === "a[href]" && element.tagName === "A") return element;
+        if (selector === "#nav" && element.parent === nav) return nav;
+        return null;
+      },
+    };
+    return element;
+  };
+
+  const app = createElement("main");
+  const snapshotState = createElement("div");
+  const nav = createElement("nav");
+  const navToggle = createElement("button");
+  const links = ["overview", "state", "wayfinding", "delivery", "history", "documents", "relations"].map(
+    (view) => {
+      const link = createElement("a");
+      link.dataset.view = view;
+      link.setAttribute("href", `?view=${view}`);
+      link.parent = nav;
+      nav.children.push(link);
+      return link;
+    },
+  );
+
+  document.querySelector = (selector) => {
+    if (selector === "#app") return app;
+    if (selector === "#snapshot-state") return snapshotState;
+    if (selector === "#nav") return nav;
+    if (selector === "#nav-toggle") return navToggle;
+    return null;
+  };
+  document.querySelectorAll = (selector) =>
+    selector === "#nav a" ? links : [];
+
+  const window = {
+    location: { search: "" },
+    scrollY: 0,
+    scrollTo() {},
+    history: { pushState() {} },
+    addEventListener() {},
+  };
+  return { document, window, nav, navToggle, links };
 }
 
 test("overview projection follows the guided reading order and honors unconfigured sources", async (t) => {
@@ -90,6 +238,11 @@ test("overview projection follows the guided reading order and honors unconfigur
 
   const overview = snapshot.overview;
   assert.equal(overview.identity.name, "Fixture Project");
+  assert.equal(overview.identity.summary, "A project summary for the overview.");
+  assert.equal(overview.identity.root, ".");
+  assert.deepEqual(overview.identity.packages, ["package:dashboard"]);
+  assert.deepEqual(overview.identity.scopes, ["package:dashboard", "workspace"]);
+  assert.ok(!JSON.stringify(overview).includes("C:\\\\"));
   assert.ok(overview.identity.git.available === false || overview.identity.git.available === true);
   assert.equal(overview.attention.configured, true);
   assert.ok(overview.attention.summary.includes("暂无规则"));
@@ -97,15 +250,47 @@ test("overview projection follows the guided reading order and honors unconfigur
   // 权威阅读路径：注意力 → 架构索引 → 领域入口。
   assert.deepEqual(
     overview.readingPath.map((item) => item.kind),
-    ["AttentionDocument", "ArchitectureIndex"],
+    ["AttentionDocument", "ArchitectureIndex", "ArchitectureDocument", "RequirementIndex"],
   );
+  assert.ok(overview.readingPath.every((item) => item.reason));
   assert.equal(overview.readingPath[0].path, ".codestable/attention.md");
 
-  // 当前项目地图与语义演变。
-  assert.equal(overview.hasWayfinding, true);
-  assert.equal(overview.maps[0].frontier, 1);
+  // 当前项目地图来自当前态入口，而不是探路地图统计。
+  assert.equal(overview.currentMap.configured, true);
+  assert.ok(
+    overview.currentMap.entries.some(
+      (entry) =>
+        entry.scope === "package:dashboard" &&
+        entry.publicBoundary.includes("Dashboard package boundary") &&
+        entry.codeAnchors.includes("dashboard/src/web/views/overview.js"),
+    ),
+  );
+
+  // 语义演变保留近期有效条目的六个字段与当前依据。
   assert.equal(overview.hasHistory, true);
-  assert.equal(overview.evolution.months[0].entries, 2);
+  assert.equal(overview.evolution.entries.length, 2);
+  assert.equal(overview.evolution.entries[0].date, "2026-08-02");
+  assert.equal(overview.evolution.entries[0].tag, "功能");
+  assert.equal(overview.evolution.entries[0].result, "Result.");
+  assert.equal(overview.evolution.entries[0].range, "workspace");
+  assert.equal(overview.evolution.entries[0].reason, "reason");
+  assert.ok(
+    overview.evolution.entries[0].currentBasis.items.some(
+      (item) => item.targetId === "ArchitectureIndex:.codestable/architecture/INDEX.md",
+    ),
+  );
+
+  // 当前注意力显示对象、状态、直接原因和诊断，而不是只显示计数。
+  const attentionStatuses = overview.attention.items.map((item) => item.status);
+  assert.ok(attentionStatuses.includes("当前前沿"));
+  assert.ok(attentionStatuses.includes("Ready"));
+  assert.ok(attentionStatuses.includes("已认领"));
+  assert.ok(attentionStatuses.includes("被阻塞"));
+  assert.ok(
+    overview.attention.items.some(
+      (item) => item.kind === "Diagnostic" && item.reason.includes("missing-ticket.md"),
+    ),
+  );
 
   // 继续入口来自真实 readiness。
   assert.deepEqual(
@@ -135,10 +320,13 @@ test("unconfigured sources render as unconfigured, not zero progress", async (t)
   assert.equal(snapshot.overview.hasWayfinding, false);
   assert.equal(snapshot.overview.hasHistory, false);
   assert.equal(snapshot.overview.attention.configured, false);
+  assert.equal(snapshot.overview.currentMap.configured, true);
+  assert.equal(snapshot.overview.currentMap.entries.length, 1);
   assert.equal(snapshot.overview.readingPath.length, 1);
 
   const html = renderOverview(snapshot, {});
-  assert.match(html, /探路地图：未配置\/无资料/);
+  assert.match(html, /当前项目地图/);
+  assert.doesNotMatch(html, /探路地图：未配置\/无资料/);
   assert.match(html, /项目历史：未配置\/无资料/);
   assert.match(html, /注意力规则：未配置/);
   assert.match(html, /当前没有可行动的前沿或 Ready 工单/);
@@ -158,6 +346,11 @@ test("all seven views render stable, escapable output", async (t) => {
   assert.match(overviewHtml, /语义演变/);
   assert.match(overviewHtml, /当前注意力/);
   assert.match(overviewHtml, /继续入口/);
+  assert.match(overviewHtml, /先读理由/);
+  assert.match(overviewHtml, /A project summary for the overview/);
+  assert.match(overviewHtml, /Dashboard package boundary/);
+  assert.match(overviewHtml, /当前依据/);
+  assert.match(overviewHtml, /missing-ticket\.md/);
   assert.match(overviewHtml, /entity-link/);
   assert.doesNotMatch(overviewHtml, /<script|onclick=/i);
 
@@ -260,6 +453,114 @@ test("all seven views render stable, escapable output", async (t) => {
   assert.match(readerOkHtml, /跳关系/);
   assert.match(readerOkHtml, /item/);
   assert.match(readerOkHtml, /api\/entities\/Decision%3A\.wayfinding%2Fsample%2Fdecisions%2F02-ready\.md\/raw/);
+});
+
+test("overview attention locates workspace changes", async (t) => {
+  const root = await projectFixture();
+  t.after(() =>
+    rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }),
+  );
+  await execFileAsync("git", ["init"], { cwd: root });
+  await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: root });
+  await execFileAsync("git", ["config", "user.name", "Test User"], { cwd: root });
+  await execFileAsync("git", ["add", "."], { cwd: root });
+  await execFileAsync("git", ["commit", "-m", "fixture"], { cwd: root });
+  await writeFile(join(root, "README.md"), "# Fixture Project\nchanged\n");
+
+  const snapshot = await createSnapshot(root);
+  const change = snapshot.overview.attention.items.find(
+    (item) => item.kind === "WorkspaceChange" && item.path === "README.md",
+  );
+  assert.ok(change);
+  assert.equal(change.status, "已修改");
+  assert.equal(snapshot.overview.identity.git.changes[0].path, "README.md");
+  assert.match(renderOverview(snapshot), /README\.md/);
+});
+test("mobile navigation drawer supports keyboard state and focus return", async () => {
+  const { createWorkbench } = await import("../src/web/app.js");
+  const dom = navigationDom();
+  createWorkbench(dom);
+
+  dom.navToggle.focus();
+  let enterPrevented = false;
+  dom.navToggle.dispatchEvent({
+    type: "keydown",
+    key: "Enter",
+    preventDefault() {
+      enterPrevented = true;
+    },
+  });
+  assert.equal(enterPrevented, true);
+  assert.equal(dom.navToggle.getAttribute("aria-expanded"), "true");
+  assert.equal(dom.navToggle.getAttribute("aria-label"), "关闭导航");
+  assert.equal(dom.nav.classList.contains("is-open"), true);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(dom.document.activeElement, dom.links[0]);
+
+  dom.document.activeElement = dom.links.at(-1);
+  let tabPrevented = false;
+  dom.document.dispatchEvent({
+    type: "keydown",
+    key: "Tab",
+    shiftKey: false,
+    preventDefault() {
+      tabPrevented = true;
+    },
+  });
+  assert.equal(tabPrevented, true);
+  assert.equal(dom.document.activeElement, dom.links[0]);
+
+  dom.document.activeElement = dom.links[0];
+  let reverseTabPrevented = false;
+  dom.document.dispatchEvent({
+    type: "keydown",
+    key: "Tab",
+    shiftKey: true,
+    preventDefault() {
+      reverseTabPrevented = true;
+    },
+  });
+  assert.equal(reverseTabPrevented, true);
+  assert.equal(dom.document.activeElement, dom.links.at(-1));
+
+  let escapePrevented = false;
+  dom.document.dispatchEvent({
+    type: "keydown",
+    key: "Escape",
+    preventDefault() {
+      escapePrevented = true;
+    },
+  });
+  assert.equal(escapePrevented, true);
+  assert.equal(dom.navToggle.getAttribute("aria-expanded"), "false");
+  assert.equal(dom.navToggle.getAttribute("aria-label"), "打开导航");
+  assert.equal(dom.nav.classList.contains("is-open"), false);
+  assert.equal(dom.document.activeElement, dom.navToggle);
+
+  let spacePrevented = false;
+  dom.navToggle.dispatchEvent({
+    type: "keydown",
+    key: " ",
+    preventDefault() {
+      spacePrevented = true;
+    },
+  });
+  assert.equal(spacePrevented, true);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(dom.document.activeElement, dom.links[0]);
+
+  let linkPrevented = false;
+  dom.document.dispatchEvent({
+    type: "click",
+    target: dom.links[1],
+    preventDefault() {
+      linkPrevented = true;
+    },
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(linkPrevented, true);
+  assert.equal(dom.nav.classList.contains("is-open"), false);
+  assert.equal(dom.document.activeElement, dom.navToggle);
 });
 
 test("URL state parsing keeps view, entity, query, filters and depth", async () => {

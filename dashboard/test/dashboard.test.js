@@ -134,6 +134,8 @@ test("refreshes the served snapshot after a tracked project file changes", async
   }).then((response) => response.text());
   assert.match(page, /<script type="module" src="\/assets\/app\.js">/);
   assert.match(page, /<nav[^>]*aria-label="主导航"/);
+  assert.match(page, /<button[^>]*id="nav-toggle"[^>]*aria-expanded="false"[^>]*aria-controls="nav"/);
+  assert.match(page, /<span aria-hidden="true">导航<\/span>/);
   assert.match(page, /\?view=overview/);
   assert.match(page, /\?view=delivery/);
   const appJs = await fetch(`${dashboard.address}/assets/app.js`, {
@@ -142,6 +144,11 @@ test("refreshes the served snapshot after a tracked project file changes", async
   assert.match(appJs, /EventSource/);
   assert.match(appJs, /history\.pushState/);
   assert.match(appJs, /popstate/);
+  const stylesCss = await fetch(`${dashboard.address}/assets/styles.css`, {
+    signal: AbortSignal.timeout(5000),
+  }).then((response) => response.text());
+  assert.match(stylesCss, /#nav\.is-open/);
+  assert.match(stylesCss, /prefers-reduced-motion/);
 
   const historyText = (dates) =>
     "# 2026-08\n\n" +

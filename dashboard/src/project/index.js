@@ -126,6 +126,7 @@ export async function buildProjectIndex(projectRoot, previous) {
     state: git.state,
     branch: git.branch,
     changed: git.changed,
+    changes: git.changes,
     headCommit: git.commit?.hash ?? null,
   };
   addEntity(gitRepositoryEntity);
@@ -751,9 +752,9 @@ async function scanGit(projectRoot, diagnostics) {
     ]);
     const lines = status.trimEnd().split("\n");
     const branch = lines[0]?.replace(/^## /, "").split("...")[0] ?? "unknown";
-    const changed = lines.filter(
-      (line) => line && !line.startsWith("## "),
-    ).length;
+    const changes = lines
+      .filter((line) => line && !line.startsWith("## "))
+      .map(parseGitStatusLine);
     const logLines = log.trim().split("\n");
     const commit = logLines[0]
       ? {
@@ -765,9 +766,10 @@ async function scanGit(projectRoot, diagnostics) {
       : null;
     return {
       available: true,
-      state: changed > 0 ? "changed" : "clean",
+      state: changes.length > 0 ? "changed" : "clean",
       branch,
-      changed,
+      changed: changes.length,
+      changes,
       commit,
     };
   } catch {
@@ -782,6 +784,7 @@ async function scanGit(projectRoot, diagnostics) {
       state: "unavailable",
       branch: "not a git repository",
       changed: 0,
+      changes: [],
       commit: null,
     };
   }
@@ -798,6 +801,28 @@ export async function resolveCommitHash(projectRoot, reference) {
   } catch {
     return null;
   }
+}
+
+function parseGitStatusLine(line) {
+  const status = line.slice(0, 2).trim() || "??";
+  const rawPath = line.slice(3).trim();
+  const path = rawPath.includes(" -> ")
+    ? rawPath.slice(rawPath.lastIndexOf(" -> ") + 4)
+    : rawPath;
+  return {
+    path: path.replace(/\\/g, "/"),
+    status,
+    reason: gitChangeReason(status),
+  };
+}
+
+function gitChangeReason(status) {
+  if (status === "??") return "未跟踪";
+  if (status.includes("U")) return "存在冲突";
+  if (status.includes("D")) return "已删除";
+  if (status.includes("R")) return "已重命名";
+  if (status.includes("A")) return "已新增";
+  return "已修改";
 }
 
 // ---- 工具 ----

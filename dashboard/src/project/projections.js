@@ -19,7 +19,7 @@ export function createSnapshotProjection(index, snapshotState) {
   const deliveries = [];
   const history = [];
   const skills = [];
-  let git = { available: false, branch: "not a git repository", changed: 0, commit: "" };
+  let git = { available: false, branch: "not a git repository", changed: 0, changes: [], commit: "" };
 
   for (const entity of entities) {
     if (entity.kind === "DecisionMap") {
@@ -38,6 +38,7 @@ export function createSnapshotProjection(index, snapshotState) {
         available: entity.state !== "unavailable",
         branch: entity.branch,
         changed: entity.changed,
+        changes: entity.changes ?? [],
         state: entity.state,
         commit: headCommit
           ? `${headCommit.short ?? headCommit.hash.slice(0, 7)} ${headCommit.date ?? ""} ${headCommit.subject}`.trim()
@@ -103,6 +104,8 @@ export function createSnapshotProjection(index, snapshotState) {
       git,
       projectEntity,
       sourcesById,
+      entitiesById,
+      relationsFrom,
       entitySummaries,
     }),
     entities: entitySummaries,
@@ -252,7 +255,17 @@ function summarizeDiagnostics(diagnostics) {
 // 首页导读投影：项目身份 → 权威阅读路径 → 当前项目地图 → 语义演变 →
 // 当前注意力 → 继续入口。可选来源缺失显示未配置，不显示零进度。
 function buildOverview(index, context) {
-  const { maps, deliveries, history, git, projectEntity, sourcesById, entitySummaries } = context;
+  const {
+    maps,
+    deliveries,
+    history,
+    git,
+    projectEntity,
+    sourcesById,
+    entitiesById,
+    relationsFrom,
+    entitySummaries,
+  } = context;
   const readingPath = currentStateReadingPath(index, sourcesById);
   const attentionSource = index.sources.find(
     (source) => source.path === ".codestable/attention.md",
@@ -270,14 +283,31 @@ function buildOverview(index, context) {
     tickets.filter((ticket) => ticket.readiness === "blocked").length;
   const closed = count(decisions, (item) => item.state === "closed") +
     count(tickets, (item) => item.state === "closed");
+  const scopes = currentStateScopes(index);
+  const currentMap = buildCurrentMap(index, sourcesById);
+  const historyEntries = recentHistoryEntries(index, relationsFrom, entitiesById);
+  const attentionItems = buildAttentionItems(index, entitySummaries, git);
+  const summary = projectSummary(sourcesById);
 
   return {
     identity: {
       name: projectEntity?.title ?? index.project.name,
-      git: { available: git.available, branch: git.branch, changed: git.changed, state: git.state },
+      summary,
+      root: ".",
+      nameFallback: !index.project.hasArchitectureIndex,
+      packages: scopes.filter((scope) => scope.startsWith("package:")),
+      scopes,
+      git: {
+        available: git.available,
+        branch: git.branch,
+        changed: git.changed,
+        changes: git.changes ?? [],
+        state: git.state,
+      },
       skillCount: entitySummaries.filter((entity) => entity.kind === "Skill").length,
     },
     readingPath,
+    currentMap,
     maps: maps.map((map) => ({
       name: map.name,
       path: map.path,
@@ -292,6 +322,7 @@ function buildOverview(index, context) {
       validity: map.validity,
     })),
     evolution: {
+      entries: historyEntries,
       months: history.map((month) => ({
         name: month.name,
         path: month.path,
@@ -299,12 +330,11 @@ function buildOverview(index, context) {
         invalid: month.invalid,
       })),
     },
-    attention: attentionSource
-      ? {
-          configured: true,
-          summary: firstLines(attentionSource.content, 3),
-        }
-      : { configured: false },
+    attention: {
+      configured: Boolean(attentionSource),
+      ...(attentionSource ? { summary: firstLines(attentionSource.content, 3) } : {}),
+      items: attentionItems,
+    },
     work: {
       decisions: decisions.length,
       tickets: tickets.length,
@@ -322,6 +352,297 @@ function buildOverview(index, context) {
     hasDelivery: deliveries.length > 0,
     hasHistory: history.length > 0,
   };
+}
+
+const CURRENT_STATE_KINDS = new Set([
+  "AttentionDocument",
+  "ArchitectureIndex",
+  "ArchitectureDocument",
+  "RequirementIndex",
+  "RequirementDocument",
+  "ADR",
+]);
+
+const READING_REASONS = {
+  AttentionDocument: "先确认每轮必读规则和当前注意力",
+  ArchitectureIndex: "先了解范围地图、默认加载和公开边界",
+  ArchitectureDocument: "再看包职责、依赖、公开边界和代码锚点",
+  RequirementIndex: "补充领域作用域、通用语言和稳定规则",
+  RequirementDocument: "读取当前领域边界及其稳定规则",
+  ADR: "确认高代价架构决定及其替代关系",
+};
+
+const OVERVIEW_HISTORY_LIMIT = 5;
+
+function projectSummary(sourcesById) {
+  const architectureSummary = firstParagraph(
+    sourcesById.get("source:.codestable/architecture/INDEX.md")?.content ?? "",
+  );
+  if (architectureSummary) return architectureSummary;
+
+  const readmeParagraphs = paragraphBlocks(
+    sourcesById.get("source:README.md")?.content ?? "",
+  );
+  return (
+    readmeParagraphs.find((paragraph) => !/(Fork|上游|来源)/i.test(paragraph)) ??
+    readmeParagraphs[0] ??
+    ""
+  );
+}
+
+function firstParagraph(text) {
+  const lines = String(text).split("\n");
+  const heading = lines.findIndex((line) => /^#\s+/.test(line.trim()));
+  if (heading < 0) return paragraphBlocks(text)[0] ?? "";
+  const body = lines.slice(heading + 1);
+  const nextHeading = body.findIndex((line) => /^#{1,6}\s+/.test(line.trim()));
+  return paragraphBlocks(body.slice(0, nextHeading < 0 ? body.length : nextHeading).join("\n"))[0] ?? "";
+}
+
+function paragraphBlocks(text) {
+  const lines = String(text).split("\n");
+  const paragraphs = [];
+  let current = [];
+  let fenced = false;
+  const flush = () => {
+    if (current.length > 0) {
+      paragraphs.push(current.join(" ").trim());
+      current = [];
+    }
+  };
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("```")) {
+      flush();
+      fenced = !fenced;
+      continue;
+    }
+    if (fenced || /^#{1,6}\s+/.test(trimmed) || !trimmed || trimmed.startsWith("<!--")) {
+      flush();
+      continue;
+    }
+    if (/^[-*]\s+/.test(trimmed)) {
+      flush();
+      continue;
+    }
+    current.push(stripMarkdown(trimmed));
+  }
+  flush();
+  return paragraphs.filter(Boolean);
+}
+
+function stripMarkdown(value) {
+  return String(value)
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/[*_]/g, "")
+    .trim();
+}
+
+function currentStateScopes(index) {
+  return [...new Set(
+    index.entities
+      .filter((entity) => CURRENT_STATE_KINDS.has(entity.kind))
+      .map((entity) => entity.scope)
+      .filter(Boolean),
+  )].sort((left, right) => left.localeCompare(right));
+}
+
+function buildCurrentMap(index, sourcesById) {
+  const entries = index.entities
+    .filter((entity) => CURRENT_STATE_KINDS.has(entity.kind))
+    .map((entity) => {
+      const source = entity.source ? sourcesById.get(entity.source.id) : null;
+      const scope = entity.scope ?? "";
+      const packageScope = scope.startsWith("package:") ? scope : "";
+      const contextScope = scope === "workspace" ||
+        scope.startsWith("context:") ||
+        scope.startsWith("shared:")
+        ? scope
+        : "";
+      return {
+        id: entity.id,
+        title: entity.title,
+        kind: entity.kind,
+        path: source?.path ?? entity.source?.id?.replace(/^source:/, "") ?? "",
+        scope,
+        package: packageScope,
+        context: contextScope,
+        publicBoundary: sectionValues(source?.content ?? "", "公开边界"),
+        codeAnchors: codeAnchorValues(source),
+        validity: source?.validity ?? entity.validity,
+      };
+    })
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const scopes = [...new Set(entries.map((entry) => entry.scope).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right));
+  const packages = [...new Set(entries.map((entry) => entry.package).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right));
+  const contexts = [...new Set(entries.map((entry) => entry.context).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right));
+  return {
+    configured: entries.length > 0,
+    scopes,
+    packages,
+    contexts,
+    entries,
+  };
+}
+
+function sectionValues(text, title) {
+  const lines = String(text).split("\n");
+  const start = lines.findIndex((line) => line.trim() === `## ${title}`);
+  if (start < 0) return [];
+  const values = [];
+  for (const line of lines.slice(start + 1)) {
+    const trimmed = line.trim();
+    if (/^#{1,6}\s+/.test(trimmed)) break;
+    if (!trimmed || trimmed.startsWith("<!--")) continue;
+    values.push(stripMarkdown(trimmed.replace(/^[-*]\s+/, "")));
+  }
+  return values;
+}
+
+function codeAnchorValues(source) {
+  if (!source) return [];
+  const frontmatter = source.frontmatter["code-paths"]
+    ? source.frontmatter["code-paths"].split("\n")
+    : [];
+  const section = sectionValues(source.content, "代码锚点");
+  return [...new Set(
+    [...frontmatter, ...section]
+      .map((value) => stripMarkdown(value.replace(/^[-*]\s+/, "")))
+      .filter(Boolean),
+  )];
+}
+
+function recentHistoryEntries(index, relationsFrom, entitiesById) {
+  return index.entities
+    .filter((entity) => entity.kind === "HistoryEntry" && entity.validity === "valid")
+    .sort((left, right) => {
+      if (left.date !== right.date) return right.date.localeCompare(left.date);
+      const leftPath = left.source?.id ?? "";
+      const rightPath = right.source?.id ?? "";
+      if (leftPath !== rightPath) return rightPath.localeCompare(leftPath);
+      return (left.sourceOrder ?? 0) - (right.sourceOrder ?? 0);
+    })
+    .slice(0, OVERVIEW_HISTORY_LIMIT)
+    .map((entry) => projectHistoryEntry(entry, relationsFrom, entitiesById));
+}
+
+function projectHistoryEntry(entry, relationsFrom, entitiesById) {
+  const relations = relationsFrom.get(entry.id) ?? [];
+  const basisRelations = relations.filter((relation) => relation.kind === "current-basis");
+  const currentBasis = {
+    raw: entry.currentBasis?.raw ?? "",
+    items: (entry.currentBasis?.items ?? []).map((item) => {
+      const relation = basisRelations.find(
+        (candidate) =>
+          candidate.provenance?.text === item.text ||
+          candidate.originalTarget === item.href,
+      );
+      return {
+        text: item.text,
+        href: item.href,
+        targetId: relation?.to ?? null,
+        targetTitle: relation?.to ? entitiesById.get(relation.to)?.title ?? null : null,
+        resolution: relation?.resolution ?? "unresolved",
+      };
+    }),
+  };
+  return {
+    id: entry.id,
+    date: entry.date,
+    tag: entry.tag,
+    result: entry.title,
+    range: entry.range,
+    reason: entry.reason,
+    currentBasis,
+    sourcePath: entry.source?.id?.replace(/^source:/, "") ?? null,
+  };
+}
+
+function buildAttentionItems(index, entitySummaries, git) {
+  const decisions = entitySummaries
+    .filter((entity) => entity.kind === "Decision" && entity.readiness === "frontier")
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const tickets = entitySummaries
+    .filter(
+      (entity) =>
+        entity.kind === "Ticket" &&
+        ["claimed", "ready", "blocked"].includes(entity.readiness),
+    )
+    .sort((left, right) => {
+      const order = { claimed: 0, ready: 1, blocked: 2 };
+      return (order[left.readiness] - order[right.readiness]) || left.id.localeCompare(right.id);
+    });
+  const items = [
+    ...decisions.map((item) => ({
+      kind: "Decision",
+      id: item.id,
+      targetId: item.id,
+      title: item.title,
+      path: item.path,
+      status: "当前前沿",
+      reason: "前置决策已关闭且未被认领",
+      readiness: item.readiness,
+    })),
+    ...tickets.map((item) => ({
+      kind: "Ticket",
+      id: item.id,
+      targetId: item.id,
+      title: item.title,
+      path: item.path,
+      status: attentionTicketStatus(item.readiness),
+      reason: attentionTicketReason(item),
+      readiness: item.readiness,
+      owner: item.owner ?? "",
+    })),
+    ...index.diagnostics.map((diagnostic) => {
+      const target = index.entities.find(
+        (entity) =>
+          entity.id === diagnostic.source || entity.source?.id === diagnostic.source,
+      );
+      const path = diagnostic.location?.path ?? diagnostic.source?.replace(/^source:/, "") ?? "";
+      return {
+        kind: "Diagnostic",
+        id: diagnostic.id,
+        targetId: target?.id ?? null,
+        title: target?.title ?? path,
+        path,
+        status: "未解决",
+        reason: diagnostic.message,
+        severity: diagnostic.severity,
+      };
+    }),
+    ...(git.changes ?? []).map((change) => ({
+      kind: "WorkspaceChange",
+      id: `WorkspaceChange:${change.path}`,
+      targetId: "GitRepository:git",
+      title: change.path,
+      path: change.path,
+      status: change.reason,
+      reason: `工作区存在未提交的${change.reason}变更`,
+      rawStatus: change.status,
+    })),
+  ];
+  return items;
+}
+
+function attentionTicketStatus(readiness) {
+  if (readiness === "claimed") return "已认领";
+  if (readiness === "blocked") return "被阻塞";
+  return "Ready";
+}
+
+function attentionTicketReason(ticket) {
+  if (ticket.readiness === "claimed") {
+    return ticket.owner ? `已有认领者：${ticket.owner}` : "已有认领者";
+  }
+  if (ticket.readiness === "blocked") {
+    return "存在未关闭或未解析的前置依赖";
+  }
+  return "前置工单已关闭且未被认领";
 }
 
 // 当前态资料入口顺序：注意力 → 架构索引 → 包/共享页 → 领域上下文 → 上下文/共享/ADR。
@@ -353,6 +674,7 @@ function currentStateReadingPath(index, sourcesById) {
         path: entity.source.id.replace(/^source:/, ""),
         validity: source?.validity ?? entity.validity,
         scope: entity.scope,
+        reason: READING_REASONS[entity.kind] ?? "补充当前态依据和定位入口",
       });
     }
   }

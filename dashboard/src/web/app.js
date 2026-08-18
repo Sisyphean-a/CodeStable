@@ -73,6 +73,8 @@ export function createWorkbench(dom) {
     typeof dom.fetch === "function" ? dom.fetch.bind(dom.window) : dom.fetch;
   const app = dom.document.querySelector("#app");
   const snapshotState = dom.document.querySelector("#snapshot-state");
+  const nav = dom.document.querySelector("#nav");
+  const navToggle = dom.document.querySelector("#nav-toggle");
 
   let snapshot = null;
   let urlState = parseUrl(dom.window.location.search);
@@ -90,6 +92,86 @@ export function createWorkbench(dom) {
   let graphError = false;
   let relationData = null;
   let relationError = null;
+
+  let navigationDrawerOpen = false;
+  let navigationTrigger = null;
+
+  function navigationFocusables() {
+    if (!nav) return [];
+    return [...nav.querySelectorAll(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )];
+  }
+
+  function scheduleNavigationFocus(callback) {
+    if (typeof dom.window.setTimeout === "function") {
+      dom.window.setTimeout(callback, 0);
+    } else {
+      setTimeout(callback, 0);
+    }
+  }
+
+  function setNavigationDrawer(open) {
+    if (!nav || !navToggle) return;
+    navigationDrawerOpen = open;
+    nav.classList.toggle("is-open", open);
+    navToggle.setAttribute("aria-expanded", String(open));
+    navToggle.setAttribute("aria-label", open ? "关闭导航" : "打开导航");
+    if (open) {
+      navigationTrigger = navToggle;
+      const firstLink = nav.querySelector("a[href]");
+      const focusFirstLink = () => {
+        if (navigationDrawerOpen) firstLink?.focus();
+      };
+      scheduleNavigationFocus(focusFirstLink);
+    } else {
+      navigationTrigger?.focus();
+      scheduleNavigationFocus(() => {
+        if (!navigationDrawerOpen) navigationTrigger?.focus();
+      });
+    }
+  }
+
+  function handleNavigationKeydown(event) {
+    if (!navigationDrawerOpen) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setNavigationDrawer(false);
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const focusable = navigationFocusables();
+    if (focusable.length === 0) {
+      event.preventDefault();
+      navToggle?.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && dom.document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && dom.document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function bindNavigationDrawer() {
+    if (!nav || !navToggle) return;
+    navToggle.addEventListener("click", () => {
+      setNavigationDrawer(!navigationDrawerOpen);
+    });
+    navToggle.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      navToggle.click();
+    });
+    dom.document.addEventListener("keydown", handleNavigationKeydown);
+  }
+
+  bindNavigationDrawer();
 
   // 快照加载失败：显示原因与重试入口，不崩溃、不静默。
   function renderLoadFailure() {
@@ -439,6 +521,9 @@ export function createWorkbench(dom) {
     }
     if (!href.startsWith("?")) return;
     event.preventDefault();
+    if (navigationDrawerOpen && nav?.contains(anchor)) {
+      setNavigationDrawer(false);
+    }
     scrollY = dom.window.scrollY;
     urlState = parseUrl(href);
     dom.window.history.pushState(urlState, "", href);
@@ -539,6 +624,7 @@ export function createWorkbench(dom) {
   }
 
   dom.window.addEventListener("popstate", (event) => {
+    if (navigationDrawerOpen) setNavigationDrawer(false);
     scrollY = dom.window.scrollY;
     urlState = parseUrl(dom.window.location.search);
     navigate();
