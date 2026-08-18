@@ -70,6 +70,39 @@ async function fixture() {
   return root;
 }
 
+async function readEvent(reader, eventName, timeoutMs = 4000) {
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const remaining = deadline - Date.now();
+    let timer;
+    const result = await Promise.race([
+      reader.read(),
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`timed out waiting for ${eventName}`)),
+          remaining,
+        );
+      }),
+    ]);
+    clearTimeout(timer);
+    if (result.done) break;
+    buffer += decoder.decode(result.value);
+    if (buffer.includes(`event: ${eventName}`)) return buffer;
+  }
+  throw new Error(`timed out waiting for ${eventName}`);
+}
+
+async function waitFor(predicate, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await predicate()) return true;
+    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+  }
+  return false;
+}
+
 function decision(status, owner, dependencies) {
   return `---\n状态: ${status}\n认领者: "${owner}"\n硬依赖: ${dependencies}\n---\n\n# Item\n`;
 }
@@ -165,11 +198,64 @@ test("refreshes the served snapshot after a tracked project file changes", async
     join(root, ".codestable", "history", "2026-08.md"),
     historyText(["2026-08-01", "2026-08-02"]),
   );
-  await new Promise((resolveWait) => setTimeout(resolveWait, 900));
+  const refreshed = await waitFor(
+    async () =>
+      (await fetchJson(`${dashboard.address}/api/snapshot`)).history[0].entries === 2,
+    4000,
+  );
+  assert.ok(refreshed, "snapshot must rebuild after a tracked change");
   const after = await fetchJson(`${dashboard.address}/api/snapshot`);
 
   assert.equal(before.history[0].entries, 1);
   assert.equal(after.history[0].entries, 2);
+});
+
+test("exposes fingerprint polling failures as stale diagnostics and SSE", async (t) => {
+  const root = await fixture();
+  let fingerprintReads = 0;
+  const dashboard = await startDashboard(root, {
+    openBrowser: false,
+    port: 0,
+    pollIntervalMs: 30,
+    fingerprintReader: async () => {
+      fingerprintReads += 1;
+      if (fingerprintReads === 1) return "initial";
+      throw new Error("simulated fingerprint read failure: .codestable/history");
+    },
+  });
+  t.after(async () => {
+    await dashboard.stop();
+    await rm(root, {
+      recursive: true,
+      force: true,
+      maxRetries: 3,
+      retryDelay: 100,
+    });
+  });
+
+  const events = await fetch(`${dashboard.address}/events`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  assert.ok(events.body, "SSE response must expose a readable body");
+  const eventText = await readEvent(events.body.getReader(), "snapshot-stale");
+  assert.ok(eventText.includes("simulated fingerprint read failure"));
+
+  const snapshot = await fetch(`${dashboard.address}/api/snapshot`, {
+    signal: AbortSignal.timeout(5000),
+  }).then((response) => response.json());
+  assert.equal(snapshot.snapshot.status, "stale");
+  assert.match(snapshot.snapshot.lastError, /\.codestable\/history/);
+  assert.equal(typeof snapshot.snapshot.staleSince, "number");
+  assert.equal(snapshot.history[0].entries, 1, "last successful index remains available");
+  assert.ok(
+    snapshot.diagnostics.items.some(
+      (diagnostic) =>
+        diagnostic.code === "stale-snapshot" &&
+        diagnostic.location.path === "." &&
+        diagnostic.message.includes(".codestable/history"),
+    ),
+    "stale snapshot includes a locatable refresh diagnostic",
+  );
 });
 
 test("refuses to start outside a CodeStable project", async (t) => {

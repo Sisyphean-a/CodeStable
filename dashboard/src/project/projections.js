@@ -3,6 +3,7 @@
 
 import { basename } from "node:path";
 import { firstHeading } from "./markdown.js";
+import { DiagnosticCodes } from "./diagnostics.js";
 
 export function createSnapshotProjection(index, snapshotState) {
   const { entities, sources, relations } = index;
@@ -70,7 +71,18 @@ export function createSnapshotProjection(index, snapshotState) {
   history.sort((left, right) => right.name.localeCompare(left.name));
 
   const projectEntity = entities.find((entity) => entity.kind === "Project");
-  const diagnosticSummary = summarizeDiagnostics(index.diagnostics);
+  const snapshotDiagnostics = [...index.diagnostics];
+  if (snapshotState?.status === "stale" && snapshotState.lastError) {
+    snapshotDiagnostics.push({
+      id: "diag:snapshot-stale",
+      severity: "error",
+      code: DiagnosticCodes.StaleSnapshot,
+      source: "refresh-store",
+      location: { path: "." },
+      message: `快照刷新失败: ${snapshotState.lastError}`,
+    });
+  }
+  const diagnosticSummary = summarizeDiagnostics(snapshotDiagnostics);
   const state = {
     status: snapshotState?.status ?? "fresh",
     generatedAt: index.generatedAt,

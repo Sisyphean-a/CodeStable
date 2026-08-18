@@ -65,6 +65,7 @@ export async function startDashboard(startDirectory, options = {}) {
   const refreshStore = createRefreshStore(projectRoot, {
     pollIntervalMs: options.pollIntervalMs,
     buildIndex: options.buildIndex ?? buildProjectIndex,
+    fingerprintReader: options.fingerprintReader,
   });
   await refreshStore.start();
 

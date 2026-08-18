@@ -11,6 +11,7 @@ export function createRefreshStore(projectRoot, options = {}) {
   const buildIndex = options.buildIndex ?? (() => {
     throw new Error("buildIndex is required");
   });
+  const getFingerprint = options.fingerprintReader ?? projectFingerprint;
 
   let index = null;
   let state = { status: "fresh", generatedAt: null };
@@ -23,6 +24,16 @@ export function createRefreshStore(projectRoot, options = {}) {
     for (const listener of listeners) listener(event);
   };
 
+  function markStale(error) {
+    state = {
+      status: "stale",
+      generatedAt: index?.generatedAt ?? null,
+      staleSince: state.status === "stale" ? state.staleSince : Date.now(),
+      lastError: formatError(error),
+    };
+    notify({ type: "stale", error });
+  }
+
   async function rebuild() {
     if (rebuilding) return;
     rebuilding = true;
@@ -33,13 +44,7 @@ export function createRefreshStore(projectRoot, options = {}) {
       notify({ type: "changed" });
       return true;
     } catch (error) {
-      state = {
-        status: "stale",
-        generatedAt: index?.generatedAt ?? null,
-        staleSince: index?.generatedAt ?? null,
-        lastError: error instanceof Error ? error.message : String(error),
-      };
-      notify({ type: "stale", error });
+      markStale(error);
       return false;
     } finally {
       rebuilding = false;
@@ -48,20 +53,19 @@ export function createRefreshStore(projectRoot, options = {}) {
 
   async function poll() {
     try {
-      const next = await projectFingerprint(projectRoot);
+      const next = await getFingerprint(projectRoot);
       if (next === fingerprint) return;
       fingerprint = next;
       await rebuild();
     } catch (error) {
-      // 指纹读取失败本身不替换快照；保留当前状态并在下次轮询重试。
-      console.error(`Dashboard fingerprint failed: ${formatError(error)}`);
+      markStale(error);
     }
   }
 
   function start() {
     return rebuild().then(async (built) => {
       if (!built) throw new Error(state.lastError ?? "initial index build failed");
-      fingerprint = await projectFingerprint(projectRoot);
+      fingerprint = await getFingerprint(projectRoot);
       pollTimer = setInterval(poll, pollIntervalMs);
       return state;
     });
