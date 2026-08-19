@@ -349,7 +349,6 @@ test("all seven views render stable, escapable output", async (t) => {
   assert.match(overviewHtml, /先读理由/);
   assert.match(overviewHtml, /A project summary for the overview/);
   assert.match(overviewHtml, /Dashboard package boundary/);
-  assert.match(overviewHtml, /当前依据/);
   assert.match(overviewHtml, /missing-ticket\.md/);
   assert.match(overviewHtml, /entity-link/);
   assert.doesNotMatch(overviewHtml, /<script|onclick=/i);
@@ -411,9 +410,10 @@ test("all seven views render stable, escapable output", async (t) => {
   });
   assert.match(historyHtml, /2026-08/);
   assert.match(historyHtml, /功能/);
-  assert.match(historyHtml, /当前依据/);
-  assert.match(historyHtml, /证据/);
+  assert.match(historyHtml, /原因：reason/);
   assert.match(historyHtml, /共 2 条有效条目/);
+  // 历史条目只保留原因与结果，不展开依据/证据/演变链。
+  assert.doesNotMatch(historyHtml, /当前依据|证据/);
 
   const documentsHtml = renderDocuments(snapshot, urlState);
   assert.match(documentsHtml, /当前态/);

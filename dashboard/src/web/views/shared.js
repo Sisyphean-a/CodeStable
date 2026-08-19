@@ -43,6 +43,27 @@ export function sectionTitle(text) {
   return `<h2>${escapeHtml(text)}</h2>`;
 }
 
+// 主页面两栏框架：左侧 sticky 栏位 + 右侧内容。
+export function pageFrame(side, main) {
+  return `<div class="page-layout">
+    <aside class="page-side">${side}</aside>
+    <div class="page-main">${main}</div>
+  </div>`;
+}
+
+// 页面内锚点导航（栏位用）。items: [{ id, label, count? }]。
+export function sideNav(items, label = "页面内导航") {
+  return `<nav class="page-side-nav" aria-label="${escapeHtml(label)}">${items
+    .map(
+      (item) =>
+        `<a href="#${escapeHtml(item.id)}" class="side-nav-link">
+          <span class="side-nav-label">${escapeHtml(item.label)}</span>
+          ${item.count != null ? `<span class="side-nav-count">${escapeHtml(item.count)}</span>` : ""}
+        </a>`,
+    )
+    .join("")}</nav>`;
+}
+
 export function unconfigured(name) {
   return `<p class="empty">${escapeHtml(name)}：未配置/无资料</p>`;
 }

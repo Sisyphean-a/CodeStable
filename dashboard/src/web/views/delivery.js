@@ -1,8 +1,17 @@
 // 交付视图：ticket 行动列表（Ready / 已认领 / 被阻塞 / 已关闭）
 // + 按需展开的 ticket 依赖 DAG（只含 ticket，20 节点/40 边有界）。
-// 每项显示状态、认领者、来源规格、可行动/阻塞原因与依赖数。
+// 左栏为生命周期分组导航，右栏为行动列表与依赖图。
 
-import { emptyState, entityLink, escapeHtml, lifecycleTone, pill, sectionTitle, skeleton } from "./shared.js";
+import {
+  entityLink,
+  escapeHtml,
+  lifecycleTone,
+  pageFrame,
+  pill,
+  sectionTitle,
+  sideNav,
+  skeleton,
+} from "./shared.js";
 import { renderDag } from "../graph.js";
 
 const GROUPS = [
@@ -19,11 +28,43 @@ export function renderDelivery(snapshot, urlState, graphData = null) {
   }
   // 选中实体即展示图区块：数据未到时显示骨架，避免点击后区域消失。
   const graphOpen = Boolean(urlState.entity);
-  return `
+
+  const counts = countByReadiness(snapshot);
+  const ticketTotal = snapshot.deliveries.reduce((sum, d) => sum + d.tickets.length, 0);
+  const side = `
+    ${sideNav(
+      GROUPS.filter((group) => counts.get(group.readiness) > 0).map((group) => ({
+        id: `dl-${group.readiness}`,
+        label: group.title,
+        count: counts.get(group.readiness),
+      })),
+      "工单分组导航",
+    )}
+    <div class="side-card">
+      <p class="side-card-title">交付面</p>
+      <p class="sub">共 ${snapshot.deliveries.length} 个交付面${ticketTotal > 0 ? ` · ${ticketTotal} 张工单` : ""}</p>
+    </div>
+  `;
+
+  const main = `
     ${sectionTitle("工单行动列表")}
     ${renderList(snapshot)}
     ${graphOpen ? renderGraphSection(snapshot, urlState, graphData) : ""}
   `;
+
+  return pageFrame(side, main);
+}
+
+function countByReadiness(snapshot) {
+  const counts = new Map(GROUPS.map((group) => [group.readiness, 0]));
+  for (const delivery of snapshot.deliveries ?? []) {
+    for (const ticket of delivery.tickets ?? []) {
+      if (counts.has(ticket.readiness)) {
+        counts.set(ticket.readiness, counts.get(ticket.readiness) + 1);
+      }
+    }
+  }
+  return counts;
 }
 
 function renderList(snapshot) {
@@ -44,7 +85,7 @@ function renderList(snapshot) {
         ${GROUPS.filter((group) => byReadiness.get(group.readiness).items.length > 0)
           .map((group) => {
             const { items } = byReadiness.get(group.readiness);
-            return `<div class="group">
+            return `<section id="dl-${group.readiness}" class="page-anchor group">
               <h3>${escapeHtml(group.title)}（${items.length}）<span class="sub">${escapeHtml(group.reason)}</span></h3>
               <ul class="list">${items
                 .map(
@@ -62,7 +103,7 @@ function renderList(snapshot) {
                   },
                 )
                 .join("")}</ul>
-            </div>`;
+            </section>`;
           })
           .join("")}
         `;

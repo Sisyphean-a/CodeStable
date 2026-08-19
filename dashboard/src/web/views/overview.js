@@ -5,6 +5,8 @@ import {
   emptyState,
   entityLink,
   escapeHtml,
+  pageFrame,
+  sideNav,
   pill,
   sectionTitle,
   unconfigured,
@@ -26,55 +28,83 @@ export function renderOverview(snapshot) {
     ? '<span class="sub">显示名回退：架构索引未配置</span>'
     : "";
 
-  return `
-    <section class="identity">
+  const side = `
+    <div class="identity side-card">
       <h1>${escapeHtml(identity.name)}</h1>
       ${summary}
-      <p class="meta">仓库根：${escapeHtml(identity.root)} · 包：${escapeHtml(packages)} · 范围：${escapeHtml(scopes)}</p>
-      <p class="meta">${gitLine} · ${identity.skillCount} 个技能 ${fallback}</p>
+      <dl class="identity-meta">
+        <dt>仓库根</dt><dd>${escapeHtml(identity.root)}</dd>
+        <dt>包</dt><dd>${escapeHtml(packages)}</dd>
+        <dt>范围</dt><dd>${escapeHtml(scopes)}</dd>
+        <dt>Git</dt><dd>${gitLine}</dd>
+        <dt>技能</dt><dd>${identity.skillCount} 个 ${fallback}</dd>
+      </dl>
+    </div>
+    ${renderStats(overview.work)}
+    ${sideNav(
+      [
+        { id: "reading-path", label: "权威阅读路径" },
+        { id: "current-map", label: "当前项目地图" },
+        { id: "evolution", label: "语义演变" },
+        { id: "attention", label: "当前注意力" },
+        { id: "continue", label: "继续入口" },
+      ],
+      "概览导航",
+    )}
+  `;
+
+  const main = `
+    <section id="reading-path" class="page-anchor">
+      ${sectionTitle("权威阅读路径")}
+      ${overview.readingPath.length === 0
+        ? emptyState("未发现当前态资料")
+        : `<ul class="list">${overview.readingPath
+            .map(
+              (item) => `<li>${entityLink(item.id, item.title)} <span class="meta">${escapeHtml(item.kind)} · ${escapeHtml(item.path)}</span>${item.validity === "valid" ? "" : pill(item.validity, "warn")}<p class="sub">先读理由：${escapeHtml(item.reason ?? "补充当前态依据和定位入口")}</p></li>`,
+            )
+            .join("")}</ul>`}
     </section>
 
-    ${renderStats(overview.work)}
+    <section id="current-map" class="page-anchor">
+      ${sectionTitle("当前项目地图")}
+      ${renderCurrentMap(overview.currentMap)}
+    </section>
 
-    ${sectionTitle("权威阅读路径")}
-    ${overview.readingPath.length === 0
-      ? emptyState("未发现当前态资料")
-      : `<ul class="list">${overview.readingPath
-          .map(
-            (item) => `<li>${entityLink(item.id, item.title)} <span class="meta">${escapeHtml(item.kind)} · ${escapeHtml(item.path)}</span>${item.validity === "valid" ? "" : pill(item.validity, "warn")}<p class="sub">先读理由：${escapeHtml(item.reason ?? "补充当前态依据和定位入口")}</p></li>`,
-          )
-          .join("")}</ul>`}
+    <section id="evolution" class="page-anchor">
+      ${sectionTitle("语义演变")}
+      ${renderEvolution(overview)}
+    </section>
 
-    ${sectionTitle("当前项目地图")}
-    ${renderCurrentMap(overview.currentMap)}
+    <section id="attention" class="page-anchor">
+      ${sectionTitle("当前注意力")}
+      <div class="attention-box">
+        ${overview.attention.configured
+          ? `<p class="sub">${escapeHtml(overview.attention.summary ?? "")}</p>`
+          : `<p class="empty">注意力规则：未配置</p>`}
+        ${renderAttention(overview.attention.items ?? [])}
+        <p class="meta">
+          决策 ${overview.work.decisions} · 工单 ${overview.work.tickets} ·
+          前沿 ${overview.work.frontier} · Ready ${overview.work.ready} ·
+          已认领 ${overview.work.claimed} · 被阻塞 ${overview.work.blocked} ·
+          已关闭 ${overview.work.closed}
+        </p>
+      </div>
+    </section>
 
-    ${sectionTitle("语义演变")}
-    ${renderEvolution(overview)}
-
-    ${sectionTitle("当前注意力")}
-    <div class="attention-box">
-      ${overview.attention.configured
-        ? `<p class="sub">${escapeHtml(overview.attention.summary ?? "")}</p>`
-        : `<p class="empty">注意力规则：未配置</p>`}
-      ${renderAttention(overview.attention.items ?? [])}
-      <p class="meta">
-        决策 ${overview.work.decisions} · 工单 ${overview.work.tickets} ·
-        前沿 ${overview.work.frontier} · Ready ${overview.work.ready} ·
-        已认领 ${overview.work.claimed} · 被阻塞 ${overview.work.blocked} ·
-        已关闭 ${overview.work.closed}
-      </p>
-    </div>
-
-    ${sectionTitle("继续入口")}
-    ${overview.continue.length === 0
-      ? emptyState("当前没有可行动的前沿或 Ready 工单")
-      : `<div class="continue-list">${overview.continue
-          .map(
-            (item) =>
-              `<a href="?view=reader&entity=${encodeURIComponent(item.id)}">${escapeHtml(item.title)}</a> <span class="sub">${escapeHtml(item.reason)}</span>`,
-          )
-          .join("")}</div>`}
+    <section id="continue" class="page-anchor">
+      ${sectionTitle("继续入口")}
+      ${overview.continue.length === 0
+        ? emptyState("当前没有可行动的前沿或 Ready 工单")
+        : `<div class="continue-list">${overview.continue
+            .map(
+              (item) =>
+                `<a href="?view=reader&entity=${encodeURIComponent(item.id)}">${escapeHtml(item.title)}</a> <span class="sub">${escapeHtml(item.reason)}</span>`,
+            )
+            .join("")}</div>`}
+    </section>
   `;
+
+  return pageFrame(side, main);
 }
 
 function renderStats(work) {
@@ -86,14 +116,17 @@ function renderStats(work) {
     { value: work.blocked, label: "被阻塞", tone: work.blocked > 0 ? "danger" : "" },
     { value: work.closed, label: "已关闭", tone: "" },
   ];
-  return `<div class="stat-grid">${stats
-    .map(
-      (stat) => `<div class="stat-card">
-        <div class="stat-value tone-${stat.tone}">${escapeHtml(stat.value)}</div>
-        <div class="stat-label">${escapeHtml(stat.label)}</div>
-      </div>`,
-    )
-    .join("")}</div>`;
+  return `<div class="side-card stats-side">
+    <p class="side-card-title">工作台指标</p>
+    <div class="stat-grid">${stats
+      .map(
+        (stat) => `<div class="stat-card">
+          <div class="stat-value tone-${stat.tone}">${escapeHtml(stat.value)}</div>
+          <div class="stat-label">${escapeHtml(stat.label)}</div>
+        </div>`,
+      )
+      .join("")}</div>
+  </div>`;
 }
 
 function renderCurrentMap(currentMap) {
@@ -132,24 +165,7 @@ function renderHistoryEntry(entry) {
     <div class="item-line"><span class="meta">${escapeHtml(entry.date)}</span> ${pill(entry.tag, "neutral")} <span class="item-title">${escapeHtml(entry.result)}</span></div>
     <p class="sub">范围：${escapeHtml(entry.range)}</p>
     <p class="reason">原因：${escapeHtml(entry.reason)}</p>
-    <p class="sub">当前依据：${renderCurrentBasis(entry.currentBasis)}</p>
   </li>`;
-}
-
-function renderCurrentBasis(currentBasis) {
-  const items = currentBasis?.items ?? [];
-  if (items.length === 0) {
-    return escapeHtml(currentBasis?.raw || "—");
-  }
-  return items
-    .map((item) => {
-      const label = item.text || item.targetTitle || item.href || "（未解析）";
-      if (item.targetId && item.resolution === "resolved") {
-        return `<a href="?view=reader&entity=${encodeURIComponent(item.targetId)}">${escapeHtml(label)}</a>`;
-      }
-      return `<span class="sub">${escapeHtml(label)}</span>`;
-    })
-    .join("、");
 }
 
 function renderAttention(items) {

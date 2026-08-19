@@ -1,8 +1,17 @@
 // 探路视图：decision 行动列表（当前前沿 / 已认领 / 被阻塞 / 已关闭）
 // + 按需展开的决策依赖 DAG（只含 decision，20 节点/40 边有界）。
-// 每项显示生命周期、认领者、可行动/阻塞原因与依赖数。
+// 左栏为生命周期分组导航，右栏为行动列表与依赖图。
 
-import { emptyState, entityLink, escapeHtml, lifecycleTone, pill, sectionTitle, skeleton } from "./shared.js";
+import {
+  entityLink,
+  escapeHtml,
+  lifecycleTone,
+  pageFrame,
+  pill,
+  sectionTitle,
+  sideNav,
+  skeleton,
+} from "./shared.js";
 import { renderDag } from "../graph.js";
 
 const GROUPS = [
@@ -23,11 +32,38 @@ export function renderWayfinding(snapshot, urlState, graphData = null) {
   // 选中实体即展示图区块：数据未到时显示骨架，避免点击后区域消失。
   const graphOpen = Boolean(urlState.entity);
 
-  return `
+  const counts = countByReadiness(snapshot);
+  const side = `
+    ${sideNav(
+      GROUPS.filter((group) => counts.get(group.readiness) > 0).map((group) => ({
+        id: `wf-${group.readiness}`,
+        label: group.title,
+        count: counts.get(group.readiness),
+      })),
+      "决策分组导航",
+    )}
+    ${activeFilters ? `<div class="side-card"><p class="side-card-title">已应用筛选</p><p class="sub">${escapeHtml(activeFilters)}</p><a class="clear-link" href="?view=wayfinding">清除</a></div>` : ""}
+  `;
+
+  const main = `
     ${sectionTitle("决策行动列表")}
     ${renderList(snapshot, activeFilters)}
     ${graphOpen ? renderGraphSection(snapshot, urlState, graphData) : ""}
   `;
+
+  return pageFrame(side, main);
+}
+
+function countByReadiness(snapshot) {
+  const counts = new Map(GROUPS.map((group) => [group.readiness, 0]));
+  for (const map of snapshot.maps ?? []) {
+    for (const decision of map.decisions ?? []) {
+      if (counts.has(decision.readiness)) {
+        counts.set(decision.readiness, counts.get(decision.readiness) + 1);
+      }
+    }
+  }
+  return counts;
 }
 
 function renderList(snapshot, activeFilters) {
@@ -71,7 +107,7 @@ function renderList(snapshot, activeFilters) {
         ${GROUPS.filter((group) => byReadiness.get(group.readiness).items.length > 0)
           .map((group) => {
             const { items } = byReadiness.get(group.readiness);
-            return `<div class="group">
+            return `<section id="wf-${group.readiness}" class="page-anchor group">
               <h3>${escapeHtml(group.title)}（${items.length}）<span class="sub">${escapeHtml(group.reason)}</span></h3>
               <ul class="list">${items
                 .map(
@@ -88,7 +124,7 @@ function renderList(snapshot, activeFilters) {
                   },
                 )
                 .join("")}</ul>
-            </div>`;
+            </section>`;
           })
           .join("")}
         `;

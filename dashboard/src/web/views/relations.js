@@ -2,7 +2,13 @@
 // 覆盖全部正式关系 kind；筛选不改变原始关系事实；手动逐层展开；
 // unresolved/external/unsafe 保留原始目标，不可错误导航为成功页面。
 
-import { entityLink, escapeHtml, emptyState, pill, sectionTitle, skeleton } from "./shared.js";
+import {
+  escapeHtml,
+  emptyState,
+  pageFrame,
+  sectionTitle,
+  skeleton,
+} from "./shared.js";
 import { renderDag } from "../graph.js";
 
 const KIND_LABELS = {
@@ -25,9 +31,9 @@ const RESOLUTION_LABELS = {
 
 export function renderRelations(snapshot, urlState, relationData = null, error = null) {
   const target = urlState.entity ?? "";
-  return `
-    ${sectionTitle("关系探索")}
-    <p class="sub">以选中实体为中心：入向关系在左、当前对象居中、出向关系在右；只显示正式关系。</p>
+
+  const side = `
+    ${sectionTitle("选择实体")}
     <form id="relation-pick" class="search-form" role="search">
       <label class="sr-only" for="relation-entity">选择实体</label>
       <select id="relation-entity" name="entity" class="relation-select">
@@ -44,7 +50,11 @@ export function renderRelations(snapshot, urlState, relationData = null, error =
         ${resolutionFilter(urlState.filters)}
       </div>
     </details>
+  `;
 
+  const main = `
+    ${sectionTitle("关系探索")}
+    <p class="sub">以选中实体为中心：入向关系在左、当前对象居中、出向关系在右；只显示正式关系。</p>
     ${
       !target
         ? emptyState("先选择一个实体，或从任意阅读页进入关系探索。")
@@ -55,6 +65,8 @@ export function renderRelations(snapshot, urlState, relationData = null, error =
             : skeleton(5)
     }
   `;
+
+  return pageFrame(side, main);
 }
 
 function renderEntityOptions(snapshot, target) {

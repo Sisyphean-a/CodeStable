@@ -427,7 +427,7 @@ export function createWorkbench(dom) {
       event.preventDefault();
       const theme = form.querySelector("#history-theme")?.value.trim() ?? "";
       const filters = [];
-      for (const field of ["date", "tag", "range", "basis"]) {
+      for (const field of ["date", "tag", "range"]) {
         const value = form.querySelector(`input[name="${field}"]`)?.value.trim() ?? "";
         if (value) filters.push(`${field}:${value}`);
       }

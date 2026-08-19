@@ -3,7 +3,15 @@
 // 无结果时显示查询、筛选、可搜索字段、清除筛选与目录返回入口；
 // 未索引 Markdown 仅在显式切换范围时列出。
 
-import { entityLink, escapeHtml, emptyState, pill, sectionTitle, skeleton } from "./shared.js";
+import {
+  entityLink,
+  escapeHtml,
+  pageFrame,
+  pill,
+  sectionTitle,
+  sideNav,
+  skeleton,
+} from "./shared.js";
 
 const CATEGORY_LABELS = {
   "current-state": "当前态",
@@ -56,16 +64,23 @@ const DIRECTORY_GROUPS = [
   },
 ];
 
-// 主渲染：目录 + 搜索表单；searchResult 存在时展示结果区。
+// 主渲染：左栏搜索+筛选+目录导航，右栏结果与完整目录。
 export function renderDocuments(snapshot, urlState, searchResult = null) {
   const activeQuery = urlState.query ?? "";
   const activeFilters = urlState.filters ?? "";
   const showUnindexed = urlState.unindexed === "1";
-  return `
+  const groups = DIRECTORY_GROUPS.map((group) => {
+    const count = snapshot.entities.filter(
+      (entity) => group.kinds.has(entity.kind) && group.filter(entity),
+    ).length;
+    return { id: `dir-${groupsSlug(group.title)}`, ...group, count };
+  });
+
+  const side = `
     ${sectionTitle("结构化搜索")}
     <form id="search-form" class="search-form" role="search">
       <label class="sr-only" for="search-input">搜索实体</label>
-      <input id="search-input" name="q" type="search" value="${escapeHtml(activeQuery)}" placeholder="标题、路径、类型、状态、标签…（仅查已确认字段）">
+      <input id="search-input" name="q" type="search" value="${escapeHtml(activeQuery)}" placeholder="标题、路径、类型、状态、标签…">
       <button type="submit">搜索</button>
       ${activeQuery ? `<a class="clear-link" href="?view=documents">清除</a>` : ""}
     </form>
@@ -81,10 +96,16 @@ export function renderDocuments(snapshot, urlState, searchResult = null) {
       </div>
       <label class="unindexed-toggle">
         <input type="checkbox" name="unindexed" value="1" ${showUnindexed ? "checked" : ""}>
-        显示未索引文档（仅路径与未索引原因，不参与搜索）
+        显示未索引文档
       </label>
     </details>
+    ${sideNav(
+      groups.map((group) => ({ id: group.id, label: group.title, count: group.count })),
+      "文档目录导航",
+    )}
+  `;
 
+  const main = `
     ${
       searchResult
         ? renderSearchResults(snapshot, urlState, searchResult)
@@ -92,10 +113,15 @@ export function renderDocuments(snapshot, urlState, searchResult = null) {
           ? `<div class="search-results">${sectionTitle("搜索结果")}${skeleton(4)}</div>`
           : ""
     }
-
     ${sectionTitle("文档目录")}
-    ${renderDirectory(snapshot, searchResult?.unindexed ?? [])}
+    ${renderDirectory(snapshot, searchResult?.unindexed ?? [], groups)}
   `;
+
+  return pageFrame(side, main);
+}
+
+function groupsSlug(title) {
+  return title.replace(/\s+/g, "-");
 }
 
 function renderSearchResults(snapshot, urlState, result) {
@@ -134,12 +160,12 @@ function renderSearchResults(snapshot, urlState, result) {
   return `<div class="search-results">${sectionTitle("搜索结果")}${body}</div>`;
 }
 
-function renderDirectory(snapshot, unindexed) {
-  const parts = DIRECTORY_GROUPS.map((group) => {
+function renderDirectory(snapshot, unindexed, groups = DIRECTORY_GROUPS.map((g) => ({ ...g, id: `dir-${groupsSlug(g.title)}` }))) {
+  const parts = groups.map((group) => {
     const items = snapshot.entities
       .filter((entity) => group.kinds.has(entity.kind) && group.filter(entity))
       .sort((left, right) => left.id.localeCompare(right.id));
-    return `${sectionTitle(`${group.title}（${items.length}）`)}
+    return `<section id="${group.id}" class="page-anchor">${sectionTitle(`${group.title}（${items.length}）`)}
       <p class="sub">${group.sub}</p>
       ${
         items.length === 0
@@ -154,7 +180,7 @@ function renderDirectory(snapshot, unindexed) {
                 </li>`,
               )
               .join("")}</ul>`
-      }`;
+      }</section>`;
   }).join("");
 
   const unindexedSection =

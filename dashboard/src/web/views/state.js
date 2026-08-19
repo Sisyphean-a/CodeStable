@@ -1,6 +1,14 @@
 // 当前态视图：按注意力规则 / 架构 / 领域与需求 / ADR 分组列出当前态资料。
+// 左栏为分组锚点导航，右栏为各组内容。
 
-import { entityLink, escapeHtml, pill, sectionTitle } from "./shared.js";
+import {
+  entityLink,
+  escapeHtml,
+  pageFrame,
+  pill,
+  sectionTitle,
+  sideNav,
+} from "./shared.js";
 
 const GROUPS = [
   { key: "AttentionDocument", title: "注意力规则" },
@@ -13,8 +21,8 @@ const GROUPS = [
 
 export function renderState(snapshot) {
   const entities = snapshot.entities;
-  const parts = [];
-  for (const group of GROUPS) {
+  const groups = GROUPS.map((group, index) => {
+    const id = `state-${index}`;
     const items = entities
       .filter(
         (entity) =>
@@ -22,9 +30,12 @@ export function renderState(snapshot) {
           entity.authority === "current-state",
       )
       .sort((left, right) => left.id.localeCompare(right.id));
-    parts.push(
-      sectionTitle(group.title) +
-        (items.length === 0
+    return {
+      ...group,
+      id,
+      items,
+      body:
+        items.length === 0
           ? '<p class="empty">未配置/无资料</p>'
           : `<ul class="list">${items
               .map(
@@ -33,8 +44,25 @@ export function renderState(snapshot) {
                   ${item.validity === "valid" ? "" : pill(item.validity, "warn")}
                   ${item.scope ? `<span class="sub">${escapeHtml(item.scope)}</span>` : ""}</li>`,
               )
-              .join("")}</ul>`),
-    );
-  }
-  return parts.join("");
+              .join("")}</ul>`,
+    };
+  });
+
+  const side = sideNav(
+    groups.map((group) => ({
+      id: group.id,
+      label: group.title,
+      count: group.items.length,
+    })),
+    "当前态导航",
+  );
+
+  const main = groups
+    .map(
+      (group) =>
+        `<section id="${group.id}" class="page-anchor">${sectionTitle(group.title)}${group.body}</section>`,
+    )
+    .join("");
+
+  return pageFrame(side, main);
 }

@@ -1,7 +1,7 @@
 // 阅读视图：深链接实体正文（服务端受限渲染）、标题目录、原文入口、
 // 复制路径与按需信息/关系检查器。无效目标保留 ID 与诊断，不静默跳转。
 
-import { emptyState, escapeHtml, pill, sectionTitle, skeleton } from "./shared.js";
+import { escapeHtml, pill, sectionTitle, skeleton } from "./shared.js";
 
 const RELATION_KIND_LABELS = {
   contains: "包含",
