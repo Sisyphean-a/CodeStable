@@ -54,7 +54,6 @@ export function renderHistory(snapshot, urlState, historyData = null) {
   `;
 
   const main = `
-    <p class="sub">只有完整可解析的语义历史条目计入时间线；条目只显示结果与原因。</p>
     ${
       historyData
         ? renderTimeline(historyData)
