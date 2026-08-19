@@ -3,7 +3,7 @@
 // 无结果时显示查询、筛选、可搜索字段、清除筛选与目录返回入口；
 // 未索引 Markdown 仅在显式切换范围时列出。
 
-import { entityLink, escapeHtml, emptyState, pill, sectionTitle } from "./shared.js";
+import { entityLink, escapeHtml, emptyState, pill, sectionTitle, skeleton } from "./shared.js";
 
 const CATEGORY_LABELS = {
   "current-state": "当前态",
@@ -88,7 +88,9 @@ export function renderDocuments(snapshot, urlState, searchResult = null) {
     ${
       searchResult
         ? renderSearchResults(snapshot, urlState, searchResult)
-        : ""
+        : urlState.query
+          ? `<div class="search-results">${sectionTitle("搜索结果")}${skeleton(4)}</div>`
+          : ""
     }
 
     ${sectionTitle("文档目录")}

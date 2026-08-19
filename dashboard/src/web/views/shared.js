@@ -29,6 +29,16 @@ export function emptyState(text) {
   return `<p class="empty">${escapeHtml(text)}</p>`;
 }
 
+// 加载骨架：形状与列表/正文近似的占位，替代转圈与纯文本。
+export function skeleton(lines = 4) {
+  const widths = ["", " short", " mid", "", " short", ""];
+  const body = Array.from(
+    { length: lines },
+    (_, index) => `<span class="skeleton-line${widths[index % widths.length]}"></span>`,
+  ).join("");
+  return `<div class="skeleton" role="status" aria-label="正在加载">${body}</div>`;
+}
+
 export function sectionTitle(text) {
   return `<h2>${escapeHtml(text)}</h2>`;
 }

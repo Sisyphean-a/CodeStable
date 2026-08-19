@@ -2,7 +2,7 @@
 // + 按需展开的 ticket 依赖 DAG（只含 ticket，20 节点/40 边有界）。
 // 每项显示状态、认领者、来源规格、可行动/阻塞原因与依赖数。
 
-import { emptyState, entityLink, escapeHtml, lifecycleTone, pill, sectionTitle } from "./shared.js";
+import { emptyState, entityLink, escapeHtml, lifecycleTone, pill, sectionTitle, skeleton } from "./shared.js";
 import { renderDag } from "../graph.js";
 
 const GROUPS = [
@@ -17,7 +17,8 @@ export function renderDelivery(snapshot, urlState, graphData = null) {
   if (snapshot.deliveries.length === 0) {
     return '<p class="empty">交付面：未配置/无资料</p>';
   }
-  const graphOpen = Boolean(urlState.entity && graphData);
+  // 选中实体即展示图区块：数据未到时显示骨架，避免点击后区域消失。
+  const graphOpen = Boolean(urlState.entity);
   return `
     ${sectionTitle("工单行动列表")}
     ${renderList(snapshot)}
@@ -47,15 +48,18 @@ function renderList(snapshot) {
               <h3>${escapeHtml(group.title)}（${items.length}）<span class="sub">${escapeHtml(group.reason)}</span></h3>
               <ul class="list">${items
                 .map(
-                  (item) => `<li>
+                  (item) => {
+                    const tone = lifecycleTone("Ticket", item.state, item.readiness);
+                    return `<li>
                     ${entityLink(item.id, item.title)}
-                    ${pill(lifecycleTone("Ticket", item.state, item.readiness).text, lifecycleTone("Ticket", item.state, item.readiness).tone)}
+                    ${pill(tone.text, tone.tone)}
                     ${item.owner ? `<span class="meta">认领者 ${escapeHtml(item.owner)}</span>` : ""}
                     <span class="meta">依赖 ${item.dependencies}</span>
                     ${item.deliveryType ? `<span class="sub">${escapeHtml(item.deliveryType)}</span>` : ""}
                     ${item.state === "unknown" ? '<span class="sub">状态未知，不能视为 ready</span>' : ""}
                     <a class="graph-link" href="?view=delivery&entity=${encodeURIComponent(item.id)}&depth=1">查看依赖</a>
-                  </li>`,
+                  </li>`;
+                  },
                 )
                 .join("")}</ul>
             </div>`;
@@ -67,9 +71,15 @@ function renderList(snapshot) {
 }
 
 function renderGraphSection(snapshot, urlState, graphData) {
-  const rendered = renderDag(graphData);
   const depth = Number(urlState.depth) || 1;
   const entity = snapshot.entities.find((item) => item.id === urlState.entity);
+  if (graphData === null) {
+    return `${sectionTitle(`依赖图：${entity?.title ?? urlState.entity}（深度 ${depth}）`)}
+      <p><a class="clear-link" href="?view=delivery">关闭图，返回行动列表</a></p>
+      ${skeleton(6)}
+    `;
+  }
+  const rendered = renderDag(graphData);
   return `${sectionTitle(`依赖图：${entity?.title ?? urlState.entity}（深度 ${depth}）`)}
     <p><a class="clear-link" href="?view=delivery">关闭图，返回行动列表</a></p>
     ${rendered.legend}

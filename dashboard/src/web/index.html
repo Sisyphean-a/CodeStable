@@ -3,13 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CodeStable 项目全景：当前态、探路、交付与语义历史的本地只读工作台">
+  <meta name="theme-color" content="#fffdf8">
   <title>CodeStable 项目全景</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2326231d'/%3E%3Ctext x='16' y='21.5' font-family='monospace' font-size='14' font-weight='700' text-anchor='middle' fill='%23fdfaf3'%3ECS%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="/assets/styles.css">
   <script type="module" src="/assets/app.js"></script>
 </head>
 <body>
+  <a class="skip-link" href="#app">跳到主要内容</a>
+  <div class="scroll-progress" aria-hidden="true"></div>
   <header class="topbar">
-    <a class="brand" href="?view=overview" data-view="overview">CodeStable 项目全景</a>
+    <a class="brand" href="?view=overview" data-view="overview">
+      <span class="brand-mark" aria-hidden="true">CS</span>
+      CodeStable 项目全景
+    </a>
     <button type="button" id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav" aria-label="打开导航">
       <span aria-hidden="true">导航</span>
     </button>
@@ -22,7 +30,15 @@
       <a href="?view=documents" data-view="documents">文档</a>
       <a href="?view=relations" data-view="relations">关系</a>
     </nav>
-    <div id="snapshot-state" class="snapshot-state" role="status"></div>
+    <div class="topbar-right">
+      <div id="snapshot-state" class="snapshot-state" role="status"></div>
+      <button type="button" id="refresh-btn" class="icon-button" aria-label="手动刷新快照" title="手动刷新快照">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+          <polyline points="21 3 21 9 15 9"/>
+        </svg>
+      </button>
+    </div>
   </header>
   <main id="app"></main>
 </body>

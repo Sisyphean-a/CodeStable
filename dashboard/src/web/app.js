@@ -75,6 +75,7 @@ export function createWorkbench(dom) {
   const snapshotState = dom.document.querySelector("#snapshot-state");
   const nav = dom.document.querySelector("#nav");
   const navToggle = dom.document.querySelector("#nav-toggle");
+  const refreshButton = dom.document.querySelector("#refresh-btn");
 
   let snapshot = null;
   let urlState = parseUrl(dom.window.location.search);
@@ -173,6 +174,45 @@ export function createWorkbench(dom) {
 
   bindNavigationDrawer();
 
+  // 手动刷新：忙碌态旋转图标，结束后恢复。
+  function setRefreshBusy(busy) {
+    if (!refreshButton) return;
+    if (busy) refreshButton.setAttribute("data-busy", "1");
+    else refreshButton.removeAttribute("data-busy");
+    refreshButton.setAttribute("aria-label", busy ? "正在刷新快照" : "手动刷新快照");
+  }
+
+  // 快捷键："/" 聚焦当前视图的搜索/筛选输入框（输入态不劫持）。
+  function bindShortcuts() {
+    dom.document.addEventListener("keydown", (event) => {
+      if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target;
+      const interactive =
+        target instanceof dom.window.HTMLElement
+          ? target.closest("input, select, textarea, [contenteditable]")
+          : null;
+      if (interactive) return;
+      const box = dom.document.querySelector(
+        "#search-input, #history-theme, #relation-entity",
+      );
+      if (!box) return;
+      event.preventDefault();
+      box.focus();
+      if (typeof box.select === "function") box.select();
+    });
+  }
+
+  // SSE 断线/重连提示：EventSource 自动重连，这里只更新状态文案。
+  function bindEventStreamStatus(events) {
+    if (!events) return;
+    events.addEventListener("open", () => {
+      if (snapshot && snapshot.snapshot.status !== "stale") updateSnapshotState();
+    });
+    events.addEventListener("error", () => {
+      snapshotState.innerHTML = '<span class="stale">实时连接中断，正在重连…</span>';
+    });
+  }
+
   // 快照加载失败：显示原因与重试入口，不崩溃、不静默。
   function renderLoadFailure() {
     const detail = loadError
@@ -204,6 +244,7 @@ export function createWorkbench(dom) {
     if (urlState.view === "reader") {
       app.innerHTML = renderReader(snapshot, urlState, readerDetail, readerLoadError);
       restoreInspector();
+      if (readerDetail !== null) bindReaderScrollSpy();
     } else if (urlState.view === "documents") {
       app.innerHTML = renderDocuments(snapshot, urlState, searchResult);
       bindDocumentsActions();
@@ -226,34 +267,42 @@ export function createWorkbench(dom) {
     updateSnapshotState();
   }
 
-  // 阅读页交互：检查器开关（焦点进入/返回）、复制路径。
+  // 阅读页交互：检查器侧滑面板（焦点进入/返回、遮罩与 Escape 关闭）、复制路径。
+  function setInspector(open, focus) {
+    const inspector = dom.document.querySelector("#inspector");
+    const toggle = dom.document.querySelector("#inspector-toggle");
+    const scrim = dom.document.querySelector("#inspector-scrim");
+    if (!inspector || !toggle) return;
+    inspectorOpen = open;
+    inspector.classList.toggle("is-open", open);
+    toggle.setAttribute("aria-expanded", String(open));
+    if (scrim) scrim.hidden = !open;
+    if (open) {
+      if (focus) inspector.focus();
+    } else if (focus) {
+      toggle.focus();
+    }
+  }
+
   function bindReaderActions() {
     const toggle = dom.document.querySelector("#inspector-toggle");
     const inspector = dom.document.querySelector("#inspector");
+    const scrim = dom.document.querySelector("#inspector-scrim");
     if (toggle && inspector) {
       inspectorTrigger = toggle;
       toggle.addEventListener("click", () => {
-        inspectorOpen = !inspectorOpen;
-        if (inspectorOpen) {
-          inspector.hidden = false;
-          toggle.setAttribute("aria-expanded", "true");
-          inspector.focus();
-        } else {
-          inspector.hidden = true;
-          toggle.setAttribute("aria-expanded", "false");
-          toggle.focus();
-        }
+        setInspector(!inspectorOpen, true);
       });
       inspector.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
           event.preventDefault();
-          inspectorOpen = false;
-          inspector.hidden = true;
-          toggle.setAttribute("aria-expanded", "false");
-          toggle.focus();
+          setInspector(false, true);
         }
       });
     }
+    scrim?.addEventListener("click", () => {
+      setInspector(false, false);
+    });
     const copyButton = dom.document.querySelector("#copy-path");
     if (copyButton) {
       copyButton.addEventListener("click", async () => {
@@ -271,18 +320,42 @@ export function createWorkbench(dom) {
     }
   }
 
+  // 目录滚动高亮：IntersectionObserver 观察正文标题，当前章节同步到侧边目录。
+  // 不用 scroll 监听；环境不支持（测试/旧浏览器）时静默降级为无高亮。
+  function bindReaderScrollSpy() {
+    const Observer =
+      dom.window?.IntersectionObserver ?? dom.document?.defaultView?.IntersectionObserver;
+    if (typeof Observer !== "function") return;
+    const content = dom.document.querySelector("#reader-content");
+    const links = [...dom.document.querySelectorAll(".toc a[data-anchor]")];
+    if (!content || links.length === 0) return;
+    const byAnchor = new Map(links.map((link) => [link.dataset.anchor, link]));
+    const headings = [...content.querySelectorAll("h1[id], h2[id], h3[id], h4[id]")];
+    if (headings.length === 0) return;
+    const observer = new Observer(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const link = byAnchor.get(entry.target.id);
+          if (!link) continue;
+          for (const other of links) other.classList.remove("is-active");
+          link.classList.add("is-active");
+        }
+      },
+      { rootMargin: "0px 0px -72% 0px", threshold: 0 },
+    );
+    for (const heading of headings) observer.observe(heading);
+  }
+
   function restoreInspector() {
     const inspector = dom.document.querySelector("#inspector");
     const toggle = dom.document.querySelector("#inspector-toggle");
+    const scrim = dom.document.querySelector("#inspector-scrim");
     if (inspector && toggle) {
-      if (inspectorOpen) {
-        inspector.hidden = false;
-        toggle.setAttribute("aria-expanded", "true");
-      } else {
-        inspector.hidden = true;
-        toggle.setAttribute("aria-expanded", "false");
-      }
+      inspector.classList.toggle("is-open", inspectorOpen);
+      toggle.setAttribute("aria-expanded", String(inspectorOpen));
     }
+    if (scrim) scrim.hidden = !inspectorOpen;
   }
 
   // 文档搜索：表单提交与筛选变化写入 URL 并重新查询。
@@ -560,6 +633,15 @@ export function createWorkbench(dom) {
   }
 
   async function refresh() {
+    setRefreshBusy(true);
+    try {
+      await refreshInner();
+    } finally {
+      setRefreshBusy(false);
+    }
+  }
+
+  async function refreshInner() {
     if (snapshot === null) {
       // 首屏加载失败后的重试路径：成功则恢复渲染。
       try {
@@ -600,8 +682,9 @@ export function createWorkbench(dom) {
       } else {
         render();
       }
-    } catch {
-      snapshotState.innerHTML = '<span class="stale">刷新失败，显示最后成功快照</span>';
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      snapshotState.innerHTML = `<span class="stale">刷新失败：${escapeAttribute(message)}</span>`;
     }
   }
 
@@ -614,7 +697,10 @@ export function createWorkbench(dom) {
       snapshot = null;
     }
     navigate();
+    refreshButton?.addEventListener("click", () => refresh());
+    bindShortcuts();
     const events = new dom.EventSource("/events");
+    bindEventStreamStatus(events);
     events.addEventListener("snapshot-changed", () => refresh());
     events.addEventListener("snapshot-stale", () => {
       updateSnapshotState();

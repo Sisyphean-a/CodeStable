@@ -34,6 +34,8 @@ export function renderOverview(snapshot) {
       <p class="meta">${gitLine} · ${identity.skillCount} 个技能 ${fallback}</p>
     </section>
 
+    ${renderStats(overview.work)}
+
     ${sectionTitle("权威阅读路径")}
     ${overview.readingPath.length === 0
       ? emptyState("未发现当前态资料")
@@ -73,6 +75,25 @@ export function renderOverview(snapshot) {
           )
           .join("")}</div>`}
   `;
+}
+
+function renderStats(work) {
+  const stats = [
+    { value: work.decisions, label: "决策", tone: "" },
+    { value: work.tickets, label: "工单", tone: "" },
+    { value: work.frontier, label: "当前前沿", tone: "ok" },
+    { value: work.ready, label: "Ready", tone: "ok" },
+    { value: work.blocked, label: "被阻塞", tone: work.blocked > 0 ? "danger" : "" },
+    { value: work.closed, label: "已关闭", tone: "" },
+  ];
+  return `<div class="stat-grid">${stats
+    .map(
+      (stat) => `<div class="stat-card">
+        <div class="stat-value tone-${stat.tone}">${escapeHtml(stat.value)}</div>
+        <div class="stat-label">${escapeHtml(stat.label)}</div>
+      </div>`,
+    )
+    .join("")}</div>`;
 }
 
 function renderCurrentMap(currentMap) {

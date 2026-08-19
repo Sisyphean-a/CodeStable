@@ -1,7 +1,7 @@
 // 阅读视图：深链接实体正文（服务端受限渲染）、标题目录、原文入口、
 // 复制路径与按需信息/关系检查器。无效目标保留 ID 与诊断，不静默跳转。
 
-import { emptyState, escapeHtml, pill, sectionTitle } from "./shared.js";
+import { emptyState, escapeHtml, pill, sectionTitle, skeleton } from "./shared.js";
 
 const RELATION_KIND_LABELS = {
   contains: "包含",
@@ -51,7 +51,9 @@ export function renderReader(snapshot, urlState, detail = null, loadError = null
   if (detail === null) {
     return `${sectionTitle("阅读")}
       <div class="reader-target">${escapeHtml(target)}</div>
-      <p class="empty">正在加载正文…</p>`;
+      <p class="empty">正在加载正文…</p>
+      ${skeleton(6)}
+      <a class="back-link" href="?view=overview">返回概览</a>`;
   }
   return detailView(detail, snapshot, urlState);
 }
@@ -101,58 +103,64 @@ function detailView(detail, snapshot, urlState) {
       ${detail.source ? ` · ${escapeHtml(detail.source.path)}` : ""}
     </div>
 
-    <nav class="toc" aria-label="标题目录">
-      ${detail.headings
-        .filter((heading) => heading.level >= 1 && heading.level <= 4)
-        .map(
-          (heading) =>
-            `<a class="toc-${heading.level}" href="#${encodeURIComponent(heading.anchor)}">${escapeHtml(heading.text)}</a>`,
-        )
-        .join("")}
-    </nav>
+    <div class="reader-layout">
+      <aside class="reader-side">
+        <nav class="toc" aria-label="标题目录">
+          ${detail.headings
+            .filter((heading) => heading.level >= 1 && heading.level <= 4)
+            .map(
+              (heading) =>
+                `<a class="toc-${heading.level}" href="#${encodeURIComponent(heading.anchor)}" data-anchor="${escapeHtml(heading.anchor)}">${escapeHtml(heading.text)}</a>`,
+            )
+            .join("")}
+        </nav>
+      </aside>
+      <div class="reader-main">
+        <article class="reader-content" id="reader-content">
+          ${
+            detail.hasMarkdown
+              ? detail.contentHtml
+              : `<p class="empty">该实体没有可读 Markdown 正文（${escapeHtml(detail.kind)}）。以下为结构化信息。</p>`
+          }
+        </article>
 
-    <article class="reader-content" id="reader-content">
-      ${
-        detail.hasMarkdown
-          ? detail.contentHtml
-          : `<p class="empty">该实体没有可读 Markdown 正文（${escapeHtml(detail.kind)}）。以下为结构化信息。</p>`
-      }
-    </article>
-
-    <section id="inspector" class="inspector" tabindex="-1" hidden>
-      ${sectionTitle("信息")}
-      <dl class="inspector-grid">
-        ${metaRows
-          .map(
-            ([key, value]) =>
-              `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`,
-          )
-          .join("")}
-      </dl>
-
-      ${sectionTitle("一跳关系")}
-      ${renderRelationsList(detail.relations)}
-
-      ${sectionTitle("诊断")}
-      ${
-        detail.diagnostics.length === 0
-          ? '<p class="empty">无诊断。</p>'
-          : detail.diagnostics
+        <section id="inspector" class="inspector" tabindex="-1" aria-label="信息与关系检查器">
+          ${sectionTitle("信息")}
+          <dl class="inspector-grid">
+            ${metaRows
               .map(
-                (diag) =>
-                  `<div class="diag ${diag.severity === "error" ? "diag-error" : ""}">
-                    <span class="diag-code">${escapeHtml(diag.code)}</span>
-                    ${escapeHtml(diag.message)}
-                    <span class="sub">${escapeHtml(diag.location?.path ?? "")}${diag.location?.line ? `:${diag.location.line}` : ""}</span>
-                  </div>`,
+                ([key, value]) =>
+                  `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`,
               )
-              .join("")
-      }
+              .join("")}
+          </dl>
 
-      ${sectionTitle("快照状态")}
-      <p class="sub">${snapshot.snapshot.status === "stale" ? "快照已过期；正文可能不是最新。" : "快照有效。"}</p>
-    </section>
-    <a class="back-link" href="?view=overview">返回概览</a>
+          ${sectionTitle("一跳关系")}
+          ${renderRelationsList(detail.relations)}
+
+          ${sectionTitle("诊断")}
+          ${
+            detail.diagnostics.length === 0
+              ? '<p class="empty">无诊断。</p>'
+              : detail.diagnostics
+                  .map(
+                    (diag) =>
+                      `<div class="diag ${diag.severity === "error" ? "diag-error" : ""}">
+                        <span class="diag-code">${escapeHtml(diag.code)}</span>
+                        ${escapeHtml(diag.message)}
+                        <span class="sub">${escapeHtml(diag.location?.path ?? "")}${diag.location?.line ? `:${diag.location.line}` : ""}</span>
+                      </div>`,
+                  )
+                  .join("")
+          }
+
+          ${sectionTitle("快照状态")}
+          <p class="sub">${snapshot.snapshot.status === "stale" ? "快照已过期；正文可能不是最新。" : "快照有效。"}</p>
+        </section>
+        <div id="inspector-scrim" class="inspector-scrim" hidden></div>
+        <a class="back-link" href="?view=overview">返回概览</a>
+      </div>
+    </div>
   `;
 }
 

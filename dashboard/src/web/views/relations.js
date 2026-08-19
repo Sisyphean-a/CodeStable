@@ -2,7 +2,7 @@
 // 覆盖全部正式关系 kind；筛选不改变原始关系事实；手动逐层展开；
 // unresolved/external/unsafe 保留原始目标，不可错误导航为成功页面。
 
-import { entityLink, escapeHtml, emptyState, pill, sectionTitle } from "./shared.js";
+import { entityLink, escapeHtml, emptyState, pill, sectionTitle, skeleton } from "./shared.js";
 import { renderDag } from "../graph.js";
 
 const KIND_LABELS = {
@@ -52,7 +52,7 @@ export function renderRelations(snapshot, urlState, relationData = null, error =
           ? '<p class="empty">关系数据加载失败。</p>'
           : relationData
             ? renderRelationGraph(snapshot, urlState, relationData)
-            : '<p class="empty">正在加载关系图…</p>'
+            : skeleton(5)
     }
   `;
 }

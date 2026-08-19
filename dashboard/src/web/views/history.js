@@ -2,7 +2,7 @@
 // 同日写入顺序）；筛选不改变来源事实；Git/代码路径作为带类型 evidence；
 // 有依据的演变链标注边类型，无依据时保持时间线。
 
-import { emptyState, escapeHtml, pill, sectionTitle } from "./shared.js";
+import { emptyState, escapeHtml, pill, sectionTitle, skeleton } from "./shared.js";
 
 const TAG_TONES = {
   功能: "ok",
@@ -43,7 +43,7 @@ export function renderHistory(snapshot, urlState, historyData = null) {
     ${
       historyData
         ? renderTimeline(historyData)
-        : '<p class="empty">正在加载时间线…</p>'
+        : skeleton(5)
     }
   `;
 }

@@ -2,7 +2,7 @@
 // + 按需展开的决策依赖 DAG（只含 decision，20 节点/40 边有界）。
 // 每项显示生命周期、认领者、可行动/阻塞原因与依赖数。
 
-import { emptyState, entityLink, escapeHtml, lifecycleTone, pill, sectionTitle } from "./shared.js";
+import { emptyState, entityLink, escapeHtml, lifecycleTone, pill, sectionTitle, skeleton } from "./shared.js";
 import { renderDag } from "../graph.js";
 
 const GROUPS = [
@@ -20,7 +20,8 @@ export function renderWayfinding(snapshot, urlState, graphData = null) {
     return '<p class="empty">探路地图：未配置/无资料</p>';
   }
   const activeFilters = urlState.filters ?? "";
-  const graphOpen = Boolean(urlState.entity && graphData);
+  // 选中实体即展示图区块：数据未到时显示骨架，避免点击后区域消失。
+  const graphOpen = Boolean(urlState.entity);
 
   return `
     ${sectionTitle("决策行动列表")}
@@ -74,14 +75,17 @@ function renderList(snapshot, activeFilters) {
               <h3>${escapeHtml(group.title)}（${items.length}）<span class="sub">${escapeHtml(group.reason)}</span></h3>
               <ul class="list">${items
                 .map(
-                  (item) => `<li>
+                  (item) => {
+                    const tone = lifecycleTone("Decision", item.state, item.readiness);
+                    return `<li>
                     ${entityLink(item.id, item.title)}
-                    ${pill(lifecycleTone("Decision", item.state, item.readiness).text, lifecycleTone("Decision", item.state, item.readiness).tone)}
+                    ${pill(tone.text, tone.tone)}
                     ${item.owner ? `<span class="meta">认领者 ${escapeHtml(item.owner)}</span>` : ""}
                     <span class="meta">依赖 ${item.dependencies}</span>
                     ${item.state === "unknown" ? '<span class="sub">状态未知，不能视为可行动</span>' : ""}
                     <a class="graph-link" href="?view=wayfinding&entity=${encodeURIComponent(item.id)}&depth=1">查看依赖</a>
-                  </li>`,
+                  </li>`;
+                  },
                 )
                 .join("")}</ul>
             </div>`;
@@ -93,9 +97,15 @@ function renderList(snapshot, activeFilters) {
 }
 
 function renderGraphSection(snapshot, urlState, graphData) {
-  const rendered = renderDag(graphData);
   const depth = Number(urlState.depth) || 1;
   const entity = snapshot.entities.find((item) => item.id === urlState.entity);
+  if (graphData === null) {
+    return `${sectionTitle(`依赖图：${entity?.title ?? urlState.entity}（深度 ${depth}）`)}
+      <p><a class="clear-link" href="?view=wayfinding">关闭图，返回行动列表</a></p>
+      ${skeleton(6)}
+    `;
+  }
+  const rendered = renderDag(graphData);
   return `${sectionTitle(`依赖图：${entity?.title ?? urlState.entity}（深度 ${depth}）`)}
     <p><a class="clear-link" href="?view=wayfinding">关闭图，返回行动列表</a></p>
     ${rendered.legend}
