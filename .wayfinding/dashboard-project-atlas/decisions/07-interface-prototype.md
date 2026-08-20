@@ -25,11 +25,11 @@
 
 ## 依据
 
-- 原型产物：[`.tmp/dashboard-project-atlas-prototype.html`](../../../.tmp/dashboard-project-atlas-prototype.html)。它只用于本次判断，不进入 `dashboard/`、构建、测试或静态资源。
+- 原型产物为可丢弃工作状态（`.tmp/dashboard-project-atlas-prototype.html`），只用于本次判断，判断结论记录于本项后已随工作状态清理，不进入 `dashboard/`、构建、测试或静态资源；已用 `git check-ignore` 验证其由现有 `.gitignore` 的 `.tmp/` 规则排除。
 - 用户首轮判断：方向通过；要求减少重复说明文案，并把探路和交付从纯文本改成更合适的图形化路线/工作线路。
 - 用户提供真实样本：`E:/h5-credit-monorepo/.wayfinding/08-colombia-package/`。只读检查确认：地图有 13 个已关闭 decision、无打开项和迷雾；同一地图下有一份规格和 11 张 ticket。
 - 原型已切换为真实样本：探路页绘制 13 个实际 decision 与 7 条硬依赖；交付页绘制 11 张 ticket 与 24 条硬依赖，状态为 5 closed、1 claimed、3 ready、2 blocked。它不再使用线性阶段或“无 delivery”的合成数据。
 - 概览入口和状态说明已压缩为短标签；正文细节只保留在阅读页和按需信息检查器。
 - 静态检查通过：真实状态、图页路由和内嵌脚本有效；未发现渐变、玻璃拟态、阴影、Inter/Roboto/Open Sans 或 emoji。HTML LSP 因环境缺少 `vscode-html-language-server` 无法运行。
-- 已用 `git check-ignore` 验证 `.tmp/dashboard-project-atlas-prototype.html` 由现有 `.gitignore` 的 `.tmp/` 规则排除。
+- 已用 `git check-ignore` 验证 `.tmp/dashboard-project-atlas-prototype.html` 由现有 `.gitignore` 的 `.tmp/` 规则排除，且该工作状态随任务完成一并清理。
 - 用户最终复核：真实项目版通过；图的具体视觉感觉可在实施中继续调整，但图形化路线/工作线及其真实语义必须保留。

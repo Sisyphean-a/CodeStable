@@ -38,7 +38,7 @@ code-paths:
 - 自动化测试只用 Node 20 内置 `node:test`：`npm test` 覆盖正常、错误、安全、SSE/stale、图文投影、Colombia 形状与规模 fixture（≥250 SourceDocument、100 decision/ticket、2000 历史条目、1000 正式关系）；性能门槛为完整索引构建中位值 ≤2 秒、热索引投影 ≤200 ms、变更到 SSE ≤3 秒。
 - 浏览器可用性（键盘/焦点、移动单列、reduced motion、深链接、Back/Forward、极简视觉）由 Chrome/Edge 人工发布清单验收，首版不引入浏览器自动化。
 
-完整依据与逐项验收条件见 [dashboard 项目全景工作台决策地图](../../../.wayfinding/dashboard-project-atlas/map.md)。
+完整依据与验收决策见 [dashboard 项目全景工作台决策地图](../../../.wayfinding/dashboard-project-atlas/map.md)；逐项验收由本页“依赖与质量”的契约与自动化测试承载。
 
 ## 代码锚点
 
