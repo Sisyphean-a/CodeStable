@@ -325,14 +325,15 @@ test("unconfigured sources render as unconfigured, not zero progress", async (t)
   assert.equal(snapshot.overview.readingPath.length, 1);
 
   const html = renderOverview(snapshot, {});
-  assert.match(html, /当前项目地图/);
-  assert.doesNotMatch(html, /探路地图：未配置\/无资料/);
+  assert.match(html, /overview-landing/);
+  assert.match(html, /Minimal/);
+  assert.match(html, /包与能力/);
   assert.match(html, /项目历史：未配置\/无资料/);
-  assert.match(html, /注意力规则：未配置/);
-  assert.match(html, /当前没有可行动的前沿或 Ready 工单/);
+  assert.match(html, /全部文档/);
+  assert.doesNotMatch(html, /工作台指标|当前项目地图|当前注意力|最近变化条目/);
 });
 
-test("all seven views render stable, escapable output", async (t) => {
+test("all views render stable, escapable output", async (t) => {
   const root = await projectFixture();
   t.after(() =>
     rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }),
@@ -341,15 +342,15 @@ test("all seven views render stable, escapable output", async (t) => {
   const urlState = { view: "overview", entity: "", query: "", filters: "", depth: "" };
 
   const overviewHtml = renderOverview(snapshot, urlState);
-  assert.match(overviewHtml, /权威阅读路径/);
-  assert.match(overviewHtml, /当前项目地图/);
-  assert.match(overviewHtml, /语义演变/);
-  assert.match(overviewHtml, /当前注意力/);
-  assert.match(overviewHtml, /继续入口/);
-  assert.match(overviewHtml, /先读理由/);
-  assert.match(overviewHtml, /A project summary for the overview/);
-  assert.match(overviewHtml, /Dashboard package boundary/);
-  assert.match(overviewHtml, /missing-ticket\.md/);
+  assert.match(overviewHtml, /overview-landing/);
+  assert.match(overviewHtml, /包与能力/);
+  assert.match(overviewHtml, /当前态/);
+  assert.match(overviewHtml, /历史时间线/);
+  assert.match(overviewHtml, /全部文档/);
+  assert.doesNotMatch(overviewHtml, /A project summary for the overview|让项目的入口/);
+  assert.match(overviewHtml, /package:dashboard/);
+  assert.match(overviewHtml, /\.codestable\/architecture\/packages\/dashboard\.md/);
+  assert.doesNotMatch(overviewHtml, /工作台指标|当前项目地图|语义演变|当前注意力|先读理由|missing-ticket\.md/);
   assert.match(overviewHtml, /entity-link/);
   assert.doesNotMatch(overviewHtml, /<script|onclick=/i);
 
@@ -430,7 +431,7 @@ test("all seven views render stable, escapable output", async (t) => {
   assert.match(readerHtml, /返回概览/);
   assert.doesNotMatch(readerHtml, /location\.(href|replace)/);
 
-  // 有效实体阅读目标：详情视图显示正文、原文入口与检查器。
+  // 有效实体阅读目标：详情视图直接显示正文与真实来源路径。
   const { buildProjectIndex } = await import("../src/project/index.js");
   const { entityDetailProjection } = await import(
     "../src/project/entity-detail.js",
@@ -447,12 +448,10 @@ test("all seven views render stable, escapable output", async (t) => {
     { ...urlState, entity: detail.id },
     detail,
   );
-  assert.match(readerOkHtml, /查看原始 Markdown/);
-  assert.match(readerOkHtml, /复制路径/);
-  assert.match(readerOkHtml, /信息 \/ 关系/);
-  assert.match(readerOkHtml, /跳关系/);
-  assert.match(readerOkHtml, /item/);
-  assert.match(readerOkHtml, /api\/entities\/Decision%3A\.wayfinding%2Fsample%2Fdecisions%2F02-ready\.md\/raw/);
+  assert.match(readerOkHtml, /reader-page/);
+  assert.match(readerOkHtml, /Ready Item/);
+  assert.match(readerOkHtml, /\.wayfinding\/sample\/decisions\/02-ready\.md/);
+  assert.doesNotMatch(readerOkHtml, /查看原始 Markdown|复制路径|信息 \/ 关系|一跳关系|代码锚点|api\/entities\/.*\/raw/);
 });
 
 test("overview attention locates workspace changes", async (t) => {
@@ -476,6 +475,27 @@ test("overview attention locates workspace changes", async (t) => {
   assert.equal(snapshot.overview.identity.git.changes[0].path, "README.md");
   assert.match(renderOverview(snapshot), /README\.md/);
 });
+test("global navigation groups real documents and opens entities directly", async (t) => {
+  const root = await projectFixture();
+  t.after(() =>
+    rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }),
+  );
+  const snapshot = await createSnapshot(root);
+  const { buildNavigation } = await import("../src/web/app.js");
+  const html = buildNavigation(snapshot);
+
+  assert.match(html, /包与能力/);
+  assert.match(html, /当前态/);
+  assert.match(html, /工作状态/);
+  assert.match(html, /\.codestable\/architecture\/packages\/dashboard\.md/);
+  assert.match(
+    html,
+    /href="\?view=reader&amp;entity=ArchitectureDocument%3A\.codestable%2Farchitecture%2Fpackages%2Fdashboard\.md"/,
+  );
+  assert.match(html, /href="\?view=history"/);
+  assert.doesNotMatch(html, /代码入口|运行时 dashboard/);
+});
+
 test("mobile navigation drawer supports keyboard state and focus return", async () => {
   const { createWorkbench } = await import("../src/web/app.js");
   const dom = navigationDom();

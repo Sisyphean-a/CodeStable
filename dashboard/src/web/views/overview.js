@@ -1,195 +1,105 @@
-// 概览视图：项目身份 → 权威阅读路径 → 当前项目地图 → 语义演变 →
-// 当前注意力 → 继续入口。未配置来源显示未配置，不显示零进度。
+// 概览视图：只提供架构索引语境与真实文档入口，不展开统计、近期变化或解释性导读。
 
-import {
-  emptyState,
-  entityLink,
-  escapeHtml,
-  pageFrame,
-  sideNav,
-  pill,
-  sectionTitle,
-  unconfigured,
-} from "./shared.js";
+import { entityLink, escapeHtml, unconfigured } from "./shared.js";
+
+const CURRENT_STATE_KINDS = new Set([
+  "AttentionDocument",
+  "ArchitectureIndex",
+  "ArchitectureDocument",
+  "RequirementIndex",
+  "RequirementDocument",
+  "ADR",
+]);
 
 export function renderOverview(snapshot) {
-  const overview = snapshot.overview;
-  const identity = overview.identity;
-  const git = identity.git;
-  const packages = identity.packages?.join("、") || "未声明";
-  const scopes = identity.scopes?.join("、") || "未声明";
-  const gitLine = git.available
-    ? `${escapeHtml(git.branch)} · ${git.changed > 0 ? `${git.changed} 个变更` : "工作区干净"}`
-    : escapeHtml(git.branch);
-  const summary = identity.summary
-    ? `<p class="summary">${escapeHtml(identity.summary)}</p>`
-    : '<p class="empty">项目简述：未配置/无资料</p>';
-  const fallback = identity.nameFallback
-    ? '<span class="sub">显示名回退：架构索引未配置</span>'
-    : "";
+  const entities = snapshot.entities ?? [];
+  const architectureIndex = entities.find(
+    (entity) => entity.kind === "ArchitectureIndex",
+  );
+  const packageDocuments = sortDocuments(
+    entities.filter(
+      (entity) =>
+        entity.kind === "ArchitectureDocument" &&
+        entity.path?.startsWith(".codestable/architecture/packages/"),
+    ),
+  );
+  const currentStateDocuments = sortDocuments(
+    entities.filter(
+      (entity) =>
+        CURRENT_STATE_KINDS.has(entity.kind) &&
+        entity.kind !== "ArchitectureIndex" &&
+        !entity.path?.startsWith(".codestable/architecture/packages/"),
+    ),
+  );
+  const readme = entities.find(
+    (entity) => entity.kind === "ReaderDocument" && entity.path === "README.md",
+  );
 
-  const side = `
-    <div class="identity side-card">
-      <h1>${escapeHtml(identity.name)}</h1>
-      ${summary}
-      <dl class="identity-meta">
-        <dt>仓库根</dt><dd>${escapeHtml(identity.root)}</dd>
-        <dt>包</dt><dd>${escapeHtml(packages)}</dd>
-        <dt>范围</dt><dd>${escapeHtml(scopes)}</dd>
-        <dt>Git</dt><dd>${gitLine}</dd>
-        <dt>技能</dt><dd>${identity.skillCount} 个 ${fallback}</dd>
-      </dl>
+  return `<section class="overview-landing">
+    <header class="overview-header">
+      <p class="overview-kicker">${escapeHtml(architectureIndex?.title ?? "架构索引")}</p>
+      <h1>${escapeHtml(architectureIndex?.title ?? "架构索引")}</h1>
+    </header>
+
+    <div class="overview-entries">
+      ${renderEntitySection("项目", architectureIndex ? [architectureIndex] : [])}
+      ${renderEntitySection("包与能力", packageDocuments)}
+      ${renderEntitySection("当前态", currentStateDocuments)}
+      ${renderHistorySection(snapshot)}
+      ${renderDocumentsSection(readme)}
     </div>
-    ${renderStats(overview.work)}
-    ${sideNav(
-      [
-        { id: "reading-path", label: "权威阅读路径" },
-        { id: "current-map", label: "当前项目地图" },
-        { id: "evolution", label: "语义演变" },
-        { id: "attention", label: "当前注意力" },
-        { id: "continue", label: "继续入口" },
-      ],
-      "概览导航",
-    )}
-  `;
-
-  const main = `
-    <section id="reading-path" class="page-anchor">
-      ${sectionTitle("权威阅读路径")}
-      ${overview.readingPath.length === 0
-        ? emptyState("未发现当前态资料")
-        : `<ul class="list">${overview.readingPath
-            .map(
-              (item) => `<li>${entityLink(item.id, item.title)} <span class="meta">${escapeHtml(item.kind)} · ${escapeHtml(item.path)}</span>${item.validity === "valid" ? "" : pill(item.validity, "warn")}<p class="sub">先读理由：${escapeHtml(item.reason ?? "补充当前态依据和定位入口")}</p></li>`,
-            )
-            .join("")}</ul>`}
-    </section>
-
-    <section id="current-map" class="page-anchor">
-      ${sectionTitle("当前项目地图")}
-      ${renderCurrentMap(overview.currentMap)}
-    </section>
-
-    <section id="evolution" class="page-anchor">
-      ${sectionTitle("语义演变")}
-      ${renderEvolution(overview)}
-    </section>
-
-    <section id="attention" class="page-anchor">
-      ${sectionTitle("当前注意力")}
-      <div class="attention-box">
-        ${overview.attention.configured
-          ? `<p class="sub">${escapeHtml(overview.attention.summary ?? "")}</p>`
-          : `<p class="empty">注意力规则：未配置</p>`}
-        ${renderAttention(overview.attention.items ?? [])}
-        <p class="meta">
-          决策 ${overview.work.decisions} · 工单 ${overview.work.tickets} ·
-          前沿 ${overview.work.frontier} · Ready ${overview.work.ready} ·
-          已认领 ${overview.work.claimed} · 被阻塞 ${overview.work.blocked} ·
-          已关闭 ${overview.work.closed}
-        </p>
-      </div>
-    </section>
-
-    <section id="continue" class="page-anchor">
-      ${sectionTitle("继续入口")}
-      ${overview.continue.length === 0
-        ? emptyState("当前没有可行动的前沿或 Ready 工单")
-        : `<div class="continue-list">${overview.continue
-            .map(
-              (item) =>
-                `<a href="?view=reader&entity=${encodeURIComponent(item.id)}">${escapeHtml(item.title)}</a> <span class="sub">${escapeHtml(item.reason)}</span>`,
-            )
-            .join("")}</div>`}
-    </section>
-  `;
-
-  return pageFrame(side, main);
+  </section>`;
 }
 
-function renderStats(work) {
-  const stats = [
-    { value: work.decisions, label: "决策", tone: "" },
-    { value: work.tickets, label: "工单", tone: "" },
-    { value: work.frontier, label: "当前前沿", tone: "ok" },
-    { value: work.ready, label: "Ready", tone: "ok" },
-    { value: work.blocked, label: "被阻塞", tone: work.blocked > 0 ? "danger" : "" },
-    { value: work.closed, label: "已关闭", tone: "" },
-  ];
-  return `<div class="side-card stats-side">
-    <p class="side-card-title">工作台指标</p>
-    <div class="stat-grid">${stats
-      .map(
-        (stat) => `<div class="stat-card">
-          <div class="stat-value tone-${stat.tone}">${escapeHtml(stat.value)}</div>
-          <div class="stat-label">${escapeHtml(stat.label)}</div>
-        </div>`,
-      )
-      .join("")}</div>
-  </div>`;
+function sortDocuments(items) {
+  return [...items].sort((left, right) =>
+    String(left.path ?? left.title).localeCompare(
+      String(right.path ?? right.title),
+    ),
+  );
 }
 
-function renderCurrentMap(currentMap) {
-  if (!currentMap?.configured || currentMap.entries.length === 0) {
-    return unconfigured("当前态项目地图");
-  }
-  const scopes = currentMap.scopes.join("、") || "未声明";
-  const packages = currentMap.packages.join("、") || "未声明";
-  const contexts = currentMap.contexts.join("、") || "未声明";
-  return `<p class="sub">范围：${escapeHtml(scopes)} · 包：${escapeHtml(packages)} · 领域上下文：${escapeHtml(contexts)}</p>
-    <ul class="list">${currentMap.entries
-      .map(
-        (entry) => `<li>
-          ${entityLink(entry.id, entry.title)}
-          <span class="meta">${escapeHtml(entry.kind)} · ${escapeHtml(entry.path)}</span>
-          <p class="sub">范围：${escapeHtml(entry.scope || "未声明")}${entry.package ? ` · 包：${escapeHtml(entry.package)}` : ""}${entry.context ? ` · 领域上下文：${escapeHtml(entry.context)}` : ""}</p>
-          ${entry.publicBoundary.length > 0 ? `<p class="sub">公开边界：${escapeHtml(entry.publicBoundary.join("；"))}</p>` : ""}
-          ${entry.codeAnchors.length > 0 ? `<p class="sub">代码锚点：${escapeHtml(entry.codeAnchors.join("；"))}</p>` : ""}
-        </li>`,
-      )
-      .join("")}</ul>`;
+function renderEntitySection(title, items) {
+  return `<section class="overview-entry-section">
+    <h2>${escapeHtml(title)}</h2>
+    ${items.length === 0
+      ? unconfigured(title)
+      : `<ul class="overview-entry-list">${items.map(renderEntityEntry).join("")}</ul>`}
+  </section>`;
 }
 
-function renderEvolution(overview) {
-  const entries = overview.evolution.entries ?? [];
-  if (entries.length > 0) {
-    return `<ol class="timeline">${entries.map(renderHistoryEntry).join("")}</ol>`;
-  }
-  return overview.hasHistory
-    ? emptyState("尚无有效语义历史")
-    : unconfigured("项目历史");
-}
-
-function renderHistoryEntry(entry) {
-  return `<li>
-    <div class="item-line"><span class="meta">${escapeHtml(entry.date)}</span> ${pill(entry.tag, "neutral")} <span class="item-title">${escapeHtml(entry.result)}</span></div>
-    <p class="sub">范围：${escapeHtml(entry.range)}</p>
-    <p class="reason">原因：${escapeHtml(entry.reason)}</p>
+function renderEntityEntry(entity) {
+  return `<li class="overview-entry">
+    ${entityLink(entity.id, entity.scope?.startsWith("package:") ? entity.scope : entity.title)}
+    ${entity.path ? `<span class="meta">${escapeHtml(entity.path)}</span>` : ""}
   </li>`;
 }
 
-function renderAttention(items) {
-  if (items.length === 0) return emptyState("当前没有活跃注意力");
-  return `<ul class="list">${items
-    .map((item) => {
-      const title = item.targetId
-        ? entityLink(item.targetId, item.title)
-        : `<span class="item-title">${escapeHtml(item.title)}</span>`;
-      const path = item.path && item.path !== item.title
-        ? `<span class="meta">${escapeHtml(item.path)}</span>`
-        : "";
-      const owner = item.owner ? ` · 认领者：${escapeHtml(item.owner)}` : "";
-      return `<li>
-        ${title} ${pill(item.status, attentionTone(item))} <span class="meta">${escapeHtml(item.kind)}${owner}</span>
-        ${path}
-        <p class="sub">原因：${escapeHtml(item.reason)}</p>
-      </li>`;
-    })
-    .join("")}</ul>`;
+function renderHistorySection(snapshot) {
+  if (!snapshot.overview.hasHistory) {
+    return `<section class="overview-entry-section">
+      <h2>变化</h2>
+      ${unconfigured("项目历史")}
+    </section>`;
+  }
+  return `<section class="overview-entry-section">
+    <h2>变化</h2>
+    <ul class="overview-entry-list">
+      <li class="overview-entry">
+        <a class="entity-link" href="?view=history">历史时间线</a>
+        <span class="meta">.codestable/history/</span>
+      </li>
+    </ul>
+  </section>`;
 }
 
-function attentionTone(item) {
-  if (item.kind === "Diagnostic" || item.status === "被阻塞") return "danger";
-  if (item.kind === "WorkspaceChange" || item.status === "已认领") return "warn";
-  return "ok";
+function renderDocumentsSection(readme) {
+  const items = [
+    ...(readme ? [renderEntityEntry(readme)] : []),
+    `<li class="overview-entry"><a class="entity-link" href="?view=documents">全部文档</a></li>`,
+  ];
+  return `<section class="overview-entry-section">
+    <h2>文档</h2>
+    <ul class="overview-entry-list">${items.join("")}</ul>
+  </section>`;
 }

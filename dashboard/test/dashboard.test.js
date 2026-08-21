@@ -166,11 +166,14 @@ test("refreshes the served snapshot after a tracked project file changes", async
     signal: AbortSignal.timeout(5000),
   }).then((response) => response.text());
   assert.match(page, /<script type="module" src="\/assets\/app\.js">/);
-  assert.match(page, /<nav[^>]*aria-label="主导航"/);
+  assert.match(page, /<nav[^>]*aria-label="项目导航"/);
+  assert.match(page, /<title>CodeStable · 文档工作台<\/title>/);
+  assert.doesNotMatch(page, /项目全景/);
   assert.match(page, /<button[^>]*id="nav-toggle"[^>]*aria-expanded="false"[^>]*aria-controls="nav"/);
   assert.match(page, /<span aria-hidden="true">导航<\/span>/);
+  assert.match(page, /id="nav-content"/);
   assert.match(page, /\?view=overview/);
-  assert.match(page, /\?view=delivery/);
+  assert.doesNotMatch(page, /\?view=delivery/);
   const appJs = await fetch(`${dashboard.address}/assets/app.js`, {
     signal: AbortSignal.timeout(5000),
   }).then((response) => response.text());

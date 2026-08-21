@@ -65,6 +65,97 @@ function escapeAttribute(value) {
   });
 }
 
+const CURRENT_STATE_KINDS = new Set([
+  "AttentionDocument",
+  "ArchitectureIndex",
+  "ArchitectureDocument",
+  "RequirementIndex",
+  "RequirementDocument",
+  "ADR",
+]);
+
+function navigationItem(label, href, options = {}) {
+  const view = options.view ? ` data-view="${escapeAttribute(options.view)}"` : "";
+  const entity = options.entity ? ` data-entity="${escapeAttribute(options.entity)}"` : "";
+  const path = options.path
+    ? `<span class="nav-path">${escapeAttribute(options.path)}</span>`
+    : "";
+  return `<a class="nav-link" href="${escapeAttribute(href)}"${view}${entity}>
+    <span class="nav-label">${escapeAttribute(label)}${path}</span>
+  </a>`;
+}
+
+function navigationGroup(title, items, index, collapsed = false) {
+  if (items.length === 0) return "";
+  const panelId = `nav-group-${index}`;
+  return `<section class="nav-group${collapsed ? " is-collapsed" : ""}">
+    <button type="button" class="nav-group-toggle" data-nav-group="${index}" aria-expanded="${String(!collapsed)}" aria-controls="${panelId}">${escapeAttribute(title)}</button>
+    <div id="${panelId}" class="nav-group-items">${items.join("")}</div>
+  </section>`;
+}
+
+export function buildNavigation(snapshot) {
+  const entities = snapshot?.entities ?? [];
+  const sorted = (items) => [...items].sort((left, right) =>
+    String(left.path ?? left.title).localeCompare(String(right.path ?? right.title)),
+  );
+  const entityLink = (entity) =>
+    navigationItem(
+      entity.scope?.startsWith("package:") ? entity.scope : entity.title,
+      `?view=reader&entity=${encodeURIComponent(entity.id)}`,
+      { entity: entity.id, path: entity.path },
+    );
+  const packageDocs = sorted(
+    entities.filter(
+      (entity) =>
+        entity.kind === "ArchitectureDocument" &&
+        entity.path?.startsWith(".codestable/architecture/packages/"),
+    ),
+  );
+  const currentStateDocs = sorted(
+    entities.filter(
+      (entity) =>
+        CURRENT_STATE_KINDS.has(entity.kind) &&
+        !entity.path?.startsWith(".codestable/architecture/packages/"),
+    ),
+  );
+  const readme = entities.find(
+    (entity) => entity.kind === "ReaderDocument" && entity.path === "README.md",
+  );
+  const groups = [
+    navigationGroup(
+      "项目",
+      [navigationItem("概览", "?view=overview", { view: "overview" })],
+      0,
+    ),
+    navigationGroup("包与能力", packageDocs.map(entityLink), 1),
+    navigationGroup("当前态", currentStateDocs.map(entityLink), 2),
+    navigationGroup(
+      "变化",
+      [navigationItem("历史时间线", "?view=history", { view: "history", path: ".codestable/history/" })],
+      3,
+    ),
+    navigationGroup(
+      "文档",
+      [
+        ...(readme ? [entityLink(readme)] : []),
+        navigationItem("全部文档", "?view=documents", { view: "documents" }),
+      ],
+      4,
+    ),
+  ];
+  const workStateItems = [];
+  if (snapshot?.overview?.hasWayfinding) {
+    workStateItems.push(navigationItem("探路", "?view=wayfinding", { view: "wayfinding" }));
+  }
+  if (snapshot?.overview?.hasDelivery) {
+    workStateItems.push(navigationItem("交付", "?view=delivery", { view: "delivery" }));
+  }
+  workStateItems.push(navigationItem("关系", "?view=relations", { view: "relations" }));
+  groups.push(navigationGroup("工作状态", workStateItems, 5, true));
+  return groups.join("");
+}
+
 // ---- 浏览器运行时（boot 前不触碰 DOM）----
 
 export function createWorkbench(dom) {
@@ -74,6 +165,7 @@ export function createWorkbench(dom) {
   const app = dom.document.querySelector("#app");
   const snapshotState = dom.document.querySelector("#snapshot-state");
   const nav = dom.document.querySelector("#nav");
+  const navContent = dom.document.querySelector("#nav-content");
   const navToggle = dom.document.querySelector("#nav-toggle");
   const refreshButton = dom.document.querySelector("#refresh-btn");
 
@@ -83,8 +175,6 @@ export function createWorkbench(dom) {
   let loadError = null;
   let readerDetail = null;
   let readerLoadError = null;
-  let inspectorOpen = false;
-  let inspectorTrigger = null;
   let searchResult = null;
   let searchError = false;
   let historyData = null;
@@ -120,7 +210,8 @@ export function createWorkbench(dom) {
     navToggle.setAttribute("aria-label", open ? "关闭导航" : "打开导航");
     if (open) {
       navigationTrigger = navToggle;
-      const firstLink = nav.querySelector("a[href]");
+      const firstLink =
+        nav.querySelector("#nav-content a[href]") ?? nav.querySelector("a[href]");
       const focusFirstLink = () => {
         if (navigationDrawerOpen) firstLink?.focus();
       };
@@ -173,6 +264,26 @@ export function createWorkbench(dom) {
   }
 
   bindNavigationDrawer();
+
+  function renderNavigation() {
+    if (!navContent || snapshot === null) return;
+    navContent.innerHTML = buildNavigation(snapshot);
+  }
+
+  function bindNavigationGroups() {
+    nav?.addEventListener("click", (event) => {
+      const toggle = event.target.closest?.("[data-nav-group]");
+      if (!toggle) return;
+      const group = toggle.closest?.(".nav-group");
+      const panel = group?.querySelector(".nav-group-items");
+      if (!group || !panel) return;
+      const open = toggle.getAttribute("aria-expanded") !== "true";
+      toggle.setAttribute("aria-expanded", String(open));
+      group.classList.toggle("is-collapsed", !open);
+    });
+  }
+
+  bindNavigationGroups();
 
   // 手动刷新：忙碌态旋转图标，结束后恢复。
   function setRefreshBusy(busy) {
@@ -239,12 +350,11 @@ export function createWorkbench(dom) {
       bindRetryAction();
       return;
     }
+    renderNavigation();
     const view = VIEWS[urlState.view];
     const previousScroll = dom.window.scrollY;
     if (urlState.view === "reader") {
       app.innerHTML = renderReader(snapshot, urlState, readerDetail, readerLoadError);
-      restoreInspector();
-      if (readerDetail !== null) bindReaderScrollSpy();
     } else if (urlState.view === "documents") {
       app.innerHTML = renderDocuments(snapshot, urlState, searchResult);
       bindDocumentsActions();
@@ -261,101 +371,10 @@ export function createWorkbench(dom) {
     } else {
       app.innerHTML = view(snapshot, urlState);
     }
-    dom.document.title = `${snapshot?.overview?.identity?.name ?? "CodeStable"} · 项目全景`;
+    dom.document.title = `${snapshot?.overview?.identity?.name ?? "CodeStable"} · 文档工作台`;
     dom.window.scrollTo(0, previousScroll || scrollY);
     updateNavigation();
     updateSnapshotState();
-  }
-
-  // 阅读页交互：检查器侧滑面板（焦点进入/返回、遮罩与 Escape 关闭）、复制路径。
-  function setInspector(open, focus) {
-    const inspector = dom.document.querySelector("#inspector");
-    const toggle = dom.document.querySelector("#inspector-toggle");
-    const scrim = dom.document.querySelector("#inspector-scrim");
-    if (!inspector || !toggle) return;
-    inspectorOpen = open;
-    inspector.classList.toggle("is-open", open);
-    toggle.setAttribute("aria-expanded", String(open));
-    if (scrim) scrim.hidden = !open;
-    if (open) {
-      if (focus) inspector.focus();
-    } else if (focus) {
-      toggle.focus();
-    }
-  }
-
-  function bindReaderActions() {
-    const toggle = dom.document.querySelector("#inspector-toggle");
-    const inspector = dom.document.querySelector("#inspector");
-    const scrim = dom.document.querySelector("#inspector-scrim");
-    if (toggle && inspector) {
-      inspectorTrigger = toggle;
-      toggle.addEventListener("click", () => {
-        setInspector(!inspectorOpen, true);
-      });
-      inspector.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          setInspector(false, true);
-        }
-      });
-    }
-    scrim?.addEventListener("click", () => {
-      setInspector(false, false);
-    });
-    const copyButton = dom.document.querySelector("#copy-path");
-    if (copyButton) {
-      copyButton.addEventListener("click", async () => {
-        const path = copyButton.dataset.path ?? "";
-        try {
-          await dom.navigator.clipboard.writeText(path);
-          copyButton.textContent = "已复制";
-        } catch {
-          copyButton.textContent = "复制失败";
-        }
-        setTimeout(() => {
-          copyButton.textContent = "复制路径";
-        }, 1200);
-      });
-    }
-  }
-
-  // 目录滚动高亮：IntersectionObserver 观察正文标题，当前章节同步到侧边目录。
-  // 不用 scroll 监听；环境不支持（测试/旧浏览器）时静默降级为无高亮。
-  function bindReaderScrollSpy() {
-    const Observer =
-      dom.window?.IntersectionObserver ?? dom.document?.defaultView?.IntersectionObserver;
-    if (typeof Observer !== "function") return;
-    const content = dom.document.querySelector("#reader-content");
-    const links = [...dom.document.querySelectorAll(".toc a[data-anchor]")];
-    if (!content || links.length === 0) return;
-    const byAnchor = new Map(links.map((link) => [link.dataset.anchor, link]));
-    const headings = [...content.querySelectorAll("h1[id], h2[id], h3[id], h4[id]")];
-    if (headings.length === 0) return;
-    const observer = new Observer(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          const link = byAnchor.get(entry.target.id);
-          if (!link) continue;
-          for (const other of links) other.classList.remove("is-active");
-          link.classList.add("is-active");
-        }
-      },
-      { rootMargin: "0px 0px -72% 0px", threshold: 0 },
-    );
-    for (const heading of headings) observer.observe(heading);
-  }
-
-  function restoreInspector() {
-    const inspector = dom.document.querySelector("#inspector");
-    const toggle = dom.document.querySelector("#inspector-toggle");
-    const scrim = dom.document.querySelector("#inspector-scrim");
-    if (inspector && toggle) {
-      inspector.classList.toggle("is-open", inspectorOpen);
-      toggle.setAttribute("aria-expanded", String(inspectorOpen));
-    }
-    if (scrim) scrim.hidden = !inspectorOpen;
   }
 
   // 文档搜索：表单提交与筛选变化写入 URL 并重新查询。
@@ -540,7 +559,6 @@ export function createWorkbench(dom) {
     readerDetail = null;
     readerLoadError = null;
     render();
-    bindReaderActions();
     try {
       const response = await fetchApi(`/api/entities/${encodeURIComponent(entityId)}`, {
         signal: AbortSignal.timeout(5000),
@@ -556,12 +574,14 @@ export function createWorkbench(dom) {
       readerLoadError = "load-failed";
     }
     render();
-    bindReaderActions();
   }
 
   function updateNavigation() {
-    for (const link of dom.document.querySelectorAll("#nav a")) {
-      if (link.dataset.view === urlState.view) {
+    for (const link of nav?.querySelectorAll("a[data-view], a[data-entity]") ?? []) {
+      const viewMatch = link.dataset.view === urlState.view;
+      const entityMatch =
+        urlState.view === "reader" && link.dataset.entity === urlState.entity;
+      if (viewMatch || entityMatch) {
         link.setAttribute("aria-current", "page");
       } else {
         link.removeAttribute("aria-current");
