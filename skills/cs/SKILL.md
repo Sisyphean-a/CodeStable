@@ -21,6 +21,7 @@ argument-hint: "<请求或问题>"
 | 已确认输入缺少稳定交付契约，或多个来源需要合成验收 | `cs-to-spec` |
 | 把已确认规格或 ticket-ready 地图拆成垂直实施工单 | `cs-to-tickets` |
 | 从已确认交付面实现并独立验收一个变化单元 | `cs-implement` |
+| 为前端生成区块参考稿或页面媒体资产 | `imagegen-frontend-web` |
 | 写用户或开发者文档 | `cs-docs` |
 | 只读扫描并报告发现 | `cs-audit` |
 | 审查明确代码差异或独立验收候选工单 | `cs-code-review` |

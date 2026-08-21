@@ -99,6 +99,7 @@ cs web
 | `cs-to-spec` | 手动 | 已确认输入缺少稳定契约或存在 synthesis debt 时合成精简验收规格 |
 | `cs-to-tickets` | 手动 | 把规格或 ticket-ready 地图拆成带硬依赖的垂直工单 |
 | `cs-implement` | 手动 | 实现并独立验收交付面中的下一张实施前沿工单 |
+| `imagegen-frontend-web` | 自动 | 为前端新生成英雄图、产品图、场景图、纹理或逐区块视觉参考；页面实现仍由前端主技能负责 |
 | `grilling` | 自动 | 按设计树轮次压力测试计划、决定或想法 |
 | `grill-with-docs` | 手动 | 按轮次追问，用临时台账保住上下文，并在整体确认后更新项目当前态 |
 | `domain-modeling` | 自动 | 在讨论中澄清领域语言、规则与边界，产出已确认的模型增量 |
