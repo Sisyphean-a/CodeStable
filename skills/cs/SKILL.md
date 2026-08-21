@@ -14,18 +14,20 @@ argument-hint: "<请求或问题>"
 | 诉求 | 技能 |
 |---|---|
 | 初始化或迁移项目记忆 | `cs-onboard` |
-| 新增能力或有意改变行为 | `cs-feat` |
+| 新增能力、有意改变行为或按现行设计实现界面 | `cs-feat` |
 | 诊断并修复错误行为 | `cs-issue` |
 | 保持行为不变地改善结构 | `cs-refactor` |
 | 为多个相互依赖的未知建立或推进跨会话决策地图 | `cs-wayfinder` |
 | 已确认输入缺少稳定交付契约，或多个来源需要合成验收 | `cs-to-spec` |
 | 把已确认规格或 ticket-ready 地图拆成垂直实施工单 | `cs-to-tickets` |
 | 从已确认交付面实现并独立验收一个变化单元 | `cs-implement` |
+| 创建新界面设计或明确重做现有界面 | `cs-ui-design` |
+| 按已有 Figma、设计稿或固定设计系统实现界面 | `cs-feat` |
 | 为前端生成区块参考稿或页面媒体资产 | `imagegen-frontend-web` |
 | 写用户或开发者文档 | `cs-docs` |
 | 只读扫描并报告发现 | `cs-audit` |
 | 审查明确代码差异或独立验收候选工单 | `cs-code-review` |
-| 围绕一个可独立收敛的选择探索实质不同方向 | `cs-brainstorm` |
+| 围绕一个可独立收敛的产品、页面或技术方向探索实质不同方案 | `cs-brainstorm` |
 | 把已确认结论或每轮必读短规则写入唯一权威当前态 | `cs-domain` |
 | 剪除陈旧项目记忆 | `cs-docs-neat` |
 | 按轮次压力测试计划、决定或想法 | `grilling` |
