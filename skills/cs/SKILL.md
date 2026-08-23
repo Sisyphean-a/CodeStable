@@ -24,7 +24,8 @@ argument-hint: "<请求或问题>"
 | 创建新界面设计或明确重做现有界面 | `cs-ui-design` |
 | 按已有 Figma、设计稿或固定设计系统实现界面 | `cs-feat` |
 | 为前端生成区块参考稿或页面媒体资产 | `imagegen-frontend-web` |
-| 写用户或开发者文档 | `cs-docs` |
+| 即时讲清功能、接口、模块或符号的入口、数据、分支、结果与设计意图 | `cs-explain` |
+| 写用户或开发者文档，包括供人长期阅读的 Mermaid 流程说明 | `cs-docs` |
 | 只读扫描并报告发现 | `cs-audit` |
 | 审查明确代码差异或独立验收候选工单 | `cs-code-review` |
 | 围绕一个可独立收敛的产品、页面或技术方向探索实质不同方案 | `cs-brainstorm` |

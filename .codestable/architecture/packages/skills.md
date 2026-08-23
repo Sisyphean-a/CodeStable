@@ -16,7 +16,8 @@ code-paths:
 
 ## 职责地图
 
-- 任务分诊与交付：`cs`、`cs-feat`、`cs-issue`、`cs-refactor`、`cs-to-spec`、`cs-to-tickets`、`cs-implement`、`cs-code-review`、`cs-audit`、`cs-docs`。
+- 任务分诊与交付：`cs`、`cs-feat`、`cs-issue`、`cs-refactor`、`cs-to-spec`、`cs-to-tickets`、`cs-implement`、`cs-code-review`、`cs-audit`。
+- 项目理解与读者文档：`cs-explain`、`cs-docs`。
 - 项目当前态：`cs-domain`、`cs-onboard`、`cs-docs-neat`、`domain-modeling`。
 - 方案与长期不确定性：`cs-brainstorm`、`cs-wayfinder`、`grilling`、`grill-with-docs`。
 
@@ -25,6 +26,7 @@ code-paths:
 ## 关键依赖与边界
 
 - `cs-domain` 的项目记忆规则唯一由 `skills/cs-domain/references/memory-model.md` 定义；`cs-onboard`、`grill-with-docs` 和 `cs-wayfinder` 按需引用它。
+- `cs-explain` 只读追踪当前代码与必要意图并即时回答；`cs-docs` 仅在用户要求长期材料时按 `skills/cs-docs/references/flow-doc.md` 写独立读者流程文档，其他技能不把它当成日常记录或同步目标。
 - `grilling` 唯一定义设计树、轮次和前沿；调用它的技能只维护自身状态，不复制访谈算法。
 - `cs-wayfinder` 只解决决策网络；完成地图由用户显式交给 `cs-to-spec` 折叠规格，再由 `cs-to-tickets` 生成带硬依赖的示踪弹工单。`cs-implement` 每次认领一张实施前沿，并按工单类型复用 `cs-feat`、`cs-issue` 或 `cs-refactor` 的交付纪律。
 - 本地交付面的规格、工单格式和前沿规则唯一由 `skills/cs-to-tickets/references/delivery-surface.md` 定义；中间工单只更新交付面，全部工单关闭后才按完整规格合并裁决项目记忆。
@@ -35,6 +37,9 @@ code-paths:
 ## 代码锚点
 
 - `skills/cs/SKILL.md`
+- `skills/cs-explain/SKILL.md`
+- `skills/cs-docs/SKILL.md`
+- `skills/cs-docs/references/flow-doc.md`
 - `skills/cs-domain/SKILL.md`
 - `skills/cs-domain/references/memory-model.md`
 - `skills/cs-refactor/references/module-depth.md`
