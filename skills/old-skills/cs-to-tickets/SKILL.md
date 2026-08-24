@@ -9,7 +9,7 @@ argument-hint: "<规格、已关闭地图或交付规划面>"
 
 把已确认交付契约拆成自包含的实施工单。工单拥有验收结果和交付顺序，决定正文仍由直接来源拥有。
 
-开始前，只读[项目记忆模型](../cs-domain/references/memory-model.md)的“按范围加载”小节，并按该顺序取得相关当前态；读取[交付面格式](references/delivery-surface.md)的验收契约。
+开始前，只读[项目记忆模型](../../cs-domain/references/memory-model.md)的“按范围加载”小节，并按该顺序取得相关当前态；读取[交付面格式](references/delivery-surface.md)的验收契约。
 
 ## 输入门禁
 

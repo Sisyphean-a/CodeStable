@@ -30,12 +30,12 @@ CodeStable 为 AI 编程工作提供可安装的技能和可选的本地只读�
 - 仪表盘只监听 `127.0.0.1`，只读取项目当前态、规划面和 Git 派生状态；它不能成为认领、关闭或写入项目记忆的旁路。
 - 技能设计以项目理解为首要整合标准：帮助 AI 或开发者恢复当前行为与意图，或在交付单一结果时保持其可理解性。
 - 技能文本信任高能力模型，以目标、最佳纪律、必要边界和可检查完成标准为核心；只有真实交接或风险契约需要时才编排固定阶段。
-- 每个技能只拥有一个外部结果或一套可复用纪律；用户调用技能之间通过规格、工单和链接显式交接，不在一次调用中自动串联多个阶段。
+- 每个技能只拥有一个外部结果或一套可复用纪律；技能之间只通过用户明确提供的现有产物交接，不在一次调用中自动串联多个阶段。
+- `cs-checkpoint` 仅按用户调用在 `.tmp/checkpoints/<task-name>.md` 保存多个大型任务各自的当前快照；恢复时核对工作区，完成时删除，不进入项目记忆或默认工作集。
+- `cs-learn` 只在当前对话中以项目代码和测试为教材，通过带读与理解验证教授函数、全线路实现和必要技术知识，不建立课程或学习记录。
 - `cs-explain` 只即时讲解当前项目，不写文件；读者流程文档只有用户明确要求时才由 `cs-docs` 创建或更新，写作与维护规则以[流程文档](../../skills/cs-docs/references/flow-doc.md)为准，其他技能不自动同步。
 - 项目记忆的价值门槛、规范格式、唯一归属和检索标准以[项目记忆模型](../../skills/cs-domain/references/memory-model.md)为唯一依据。
 - 确认后的事实必须只有一个当前权威位置；历史和 Pi 会话只说明原因与证据，不能覆盖当前态。
-- `cs-brainstorm` 只收敛一个当前会话内的选择；多个相互依赖、需要跨会话推进的未知交给 `cs-wayfinder`。前者发现问题网时升级，后者遇到尚未形成选项空间的单项选择时交接。
-- 大型目标的交付边界是决策地图、实施规格和示踪弹工单：`cs-to-spec` 折叠已确认来源，`cs-to-tickets` 建立实施依赖，`cs-implement` 每次关闭一张实施工单。中间工单留在交付面，全部工单关闭后才按完整规格合并裁决项目记忆。
 - 访谈或探索中的局部结论先留在工作状态；依赖闭合并经整体确认后，才作为一个变化单元交给 `cs-domain` 归档。
 
 ## 代码锚点
@@ -44,11 +44,8 @@ CodeStable 为 AI 编程工作提供可安装的技能和可选的本地只读�
 - `dashboard/src/dashboard.js`
 - `skills/cs-domain/references/memory-model.md`
 - `skills/cs-explain/SKILL.md`
+- `skills/cs-learn/SKILL.md`
 - `skills/cs-docs/references/flow-doc.md`
-- `skills/cs-brainstorm/SKILL.md`
-- `skills/cs-wayfinder/SKILL.md`
-- `skills/cs-to-spec/SKILL.md`
-- `skills/cs-to-tickets/SKILL.md`
-- `skills/cs-implement/SKILL.md`
+- `skills/cs-checkpoint/SKILL.md`
 - `skills/grilling/SKILL.md`
 - `skills/grill-with-docs/SKILL.md`

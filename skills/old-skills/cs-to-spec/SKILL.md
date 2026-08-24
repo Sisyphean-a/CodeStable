@@ -9,7 +9,7 @@ argument-hint: "<缺少稳定契约的已确认输入、地图或规划面>"
 
 只在已确认输入存在 **synthesis debt** 时建立实施契约：补足缺失的稳定来源，或合成不能由拆票阶段机械登记的交付判断。规格是验收清单和来源索引，不是决策正文的副本。
 
-开始前，只读[项目记忆模型](../cs-domain/references/memory-model.md)的“按范围加载”小节，并按该顺序取得相关当前态；读取[交付面格式](../cs-to-tickets/references/delivery-surface.md)的验收契约。来源是本地决策地图时，先查看[本地地图格式](../cs-wayfinder/references/local-map.md)。
+开始前，只读[项目记忆模型](../../cs-domain/references/memory-model.md)的“按范围加载”小节，并按该顺序取得相关当前态；读取[交付面格式](../cs-to-tickets/references/delivery-surface.md)的验收契约。来源是本地决策地图时，先查看[本地地图格式](../cs-wayfinder/references/local-map.md)。
 
 ## Synthesis debt
 
