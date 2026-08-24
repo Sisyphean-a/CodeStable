@@ -25,6 +25,7 @@ argument-hint: "<请求或问题>"
 | 只读扫描并报告发现 | `cs-audit` |
 | 审查明确代码差异、分支或提交 | `cs-code-review` |
 | 把已确认结论或每轮必读短规则写入唯一权威当前态 | `cs-domain` |
+| 修复已发现的 `.codestable` 确定性规范冲突 | `cs-memory-guard` |
 | 剪除陈旧项目记忆 | `cs-docs-neat` |
 | 保存、恢复或删除大型任务的临时目标、用户重点和进度 | `cs-checkpoint` |
 | 按轮次压力测试计划、决定或想法 | `grilling` |

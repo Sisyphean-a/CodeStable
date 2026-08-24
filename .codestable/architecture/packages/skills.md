@@ -12,14 +12,14 @@ code-paths:
 
 - `skills/<name>/SKILL.md`：技能的名称、调用方式、适用场景和完成条件。
 - `skills/<name>/references/`：仅在对应技能要求时读取的补充规则；它们不构成独立技能。
-- `skills/old-skills/`：退出现行集合的归档，不进入 `npx skills` 公开技能目录。
+- `old-skills/`：退出现行集合的归档，位于 `skills/` 外，不进入 `npx skills` 公开技能目录。
 - `README.md`：`npx skills` 的安装和更新入口，以及完整技能目录。
 
 ## 职责地图
 
 - 任务分诊与交付：`cs`、`cs-feat`、`cs-issue`、`cs-refactor`、`cs-code-review`、`cs-audit`。
 - 项目理解与读者文档：`cs-explain`、`cs-learn`、`cs-docs`。
-- 项目当前态：`cs-domain`、`cs-onboard`、`cs-docs-neat`、`domain-modeling`。
+- 项目当前态：`cs-domain`、`cs-memory-guard`、`cs-onboard`、`cs-docs-neat`、`domain-modeling`。
 - 临时任务续接：`cs-checkpoint`。
 - 方案与意图澄清：`cs-ui-design`、`grilling`、`grill-with-docs`。
 
@@ -27,7 +27,7 @@ code-paths:
 
 ## 关键依赖与边界
 
-- `cs-domain` 的项目记忆规则唯一由 `skills/cs-domain/references/memory-model.md` 定义；`cs-onboard` 和 `grill-with-docs` 按需引用它。
+- `cs-domain` 的项目记忆规则唯一由 `skills/cs-domain/references/memory-model.md` 定义；`cs-memory-guard`、`cs-onboard` 和 `grill-with-docs` 按需引用它。
 - `cs-explain` 只读追踪当前代码与必要意图并即时回答；`cs-learn` 只在当前对话中用项目代码、测试和必要的一手资料带读并验证理解；`cs-docs` 仅在用户要求长期材料时按 `skills/cs-docs/references/flow-doc.md` 写独立读者流程文档。
 - `cs-checkpoint` 在 `.tmp/checkpoints/` 为多个大型任务维护命名的当前快照；只有一个时自动选择，完成即删，不进入项目记忆或默认工作集。
 - `grilling` 唯一定义设计树、轮次和前沿；调用它的技能只维护自身状态，不复制访谈算法。
@@ -43,6 +43,7 @@ code-paths:
 - `skills/cs-docs/references/flow-doc.md`
 - `skills/cs-checkpoint/SKILL.md`
 - `skills/cs-domain/SKILL.md`
+- `skills/cs-memory-guard/SKILL.md`
 - `skills/cs-domain/references/memory-model.md`
 - `skills/cs-refactor/references/module-depth.md`
 - `skills/cs-issue/SKILL.md`
