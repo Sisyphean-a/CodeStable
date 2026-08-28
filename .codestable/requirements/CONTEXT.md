@@ -33,7 +33,7 @@ CodeStable 为 AI 编程工作提供可安装的技能和可选的本地只读�
 - 每个技能只拥有一个外部结果或一套可复用纪律；技能之间只通过用户明确提供的现有产物交接，不在一次调用中自动串联多个阶段。
 - `cs-checkpoint` 仅按用户调用在 `.tmp/checkpoints/<task-name>.md` 保存多个大型任务各自的当前快照；恢复时核对工作区，完成时删除，不进入项目记忆或默认工作集。
 - `cs-learn` 只在当前对话中以项目代码和测试为教材，通过带读与理解验证教授函数、全线路实现和必要技术知识，不建立课程或学习记录。
-- `cs-explain` 只即时讲解当前项目，不写文件；读者流程文档只有用户明确要求时才由 `cs-docs` 创建或更新，写作与维护规则以[流程文档](../../skills/cs-docs/references/flow-doc.md)为准，其他技能不自动同步。
+- `show-me` 负责视觉优先的即时讲解，输出与临时产物契约以其 [`SKILL.md`](../../skills/show-me/SKILL.md) 为唯一依据。读者流程文档只有用户明确要求时才由 `cs-docs` 创建或更新，写作与维护规则以[流程文档](../../skills/cs-docs/references/flow-doc.md)为准，其他技能不自动同步。
 - 项目记忆的价值门槛、规范格式、唯一归属和检索标准以[项目记忆模型](../../skills/cs-domain/references/memory-model.md)为唯一依据。
 - 确认后的事实必须只有一个当前权威位置；历史和 Pi 会话只说明原因与证据，不能覆盖当前态。
 - 访谈或探索中的局部结论先留在工作状态；依赖闭合并经整体确认后，才作为一个变化单元交给 `cs-domain` 归档。
@@ -43,7 +43,7 @@ CodeStable 为 AI 编程工作提供可安装的技能和可选的本地只读�
 - `README.md`
 - `dashboard/src/dashboard.js`
 - `skills/cs-domain/references/memory-model.md`
-- `skills/cs-explain/SKILL.md`
+- `skills/show-me/SKILL.md`
 - `skills/cs-learn/SKILL.md`
 - `skills/cs-docs/references/flow-doc.md`
 - `skills/cs-checkpoint/SKILL.md`
