@@ -27,6 +27,7 @@ code-paths:
 
 ## 关键依赖与边界
 
+- 日常事实查询、局部修复和常规审查由当前 agent 直接执行；只有高风险最终差异在冻结后进入独立 Pi 会话或人工审查，技能包因此无需子代理插件或自动派发运行时。
 - `cs-domain` 的项目记忆规则唯一由 `skills/cs-domain/references/memory-model.md` 定义；`cs-memory-guard`、`cs-onboard`、`cs-goal` 和 `grill-with-docs` 按需引用它。
 - `cs-goal` 只把从零想法或现有整体偏离感收敛成已确认的产品主线，不产出解决方案、界面设计或代码；`cs-feat` 在用户要求直接交付时以内嵌 Goal Read 承接目标型委托，不自动串联 `cs-goal`，独立视觉方案仍由 `cs-ui-design` 拥有。
 - `show-me` 拥有视觉优先的即时讲解，执行契约唯一由 `skills/show-me/SKILL.md` 定义；`cs-learn` 只在当前对话中用项目代码、测试和必要的一手资料带读并验证理解；`cs-docs` 仅在用户要求长期材料时按 `skills/cs-docs/references/flow-doc.md` 写独立读者流程文档。
