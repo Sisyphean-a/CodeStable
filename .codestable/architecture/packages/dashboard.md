@@ -6,7 +6,7 @@ code-paths:
 
 # 仪表盘包
 
-本包提供本地只读 Web 仪表盘（文档导航工作台）。`npm link` 将 `dashboard/bin/cs.js` 注册为本机 `cs` 命令；在任意 CodeStable 项目目录执行 `cs web` 后，它向上查找最近的 `.codestable`，在 `127.0.0.1` 启动服务并打开浏览器。
+本包提供本地只读 Web 文档阅读器（兼容旧入口）。`npm link` 将 `dashboard/bin/cs.js` 注册为本机 `cs` 命令；在任意 CodeStable 项目目录执行 `cs web` 后，它向上查找最近的 `.codestable`，在 `127.0.0.1` 启动服务并打开浏览器。
 
 ## 公开边界
 
@@ -38,9 +38,9 @@ code-paths:
 
 ## 模块结构
 
-- `src/project/`：`root.js`（项目根发现）、`sources.js`（资料枚举与 SourceDocument，含 raw 原文与按元数据缓存复用）、`markdown.js`（frontmatter/标题锚点/显式链接）、`index.js`（ProjectIndex 构建、实体、历史解析、Git 扫描）、`relations.js`（正式关系与目标解析）、`diagnostics.js`、`projections.js`（兼容快照投影）、`entity-detail.js`（实体详情/原文投影与 ID 安全校验）、`search.js`（结构化搜索）、`history.js`（语义历史时间线）、`graph.js`（decision/ticket 依赖 DAG）、`relation-graph.js`（局部关系图）。
+- `src/project/`：`root.js`（项目根发现）、`sources.js`（资料枚举与 SourceDocument，含 raw 原文与按元数据缓存复用）、`markdown.js`（frontmatter/标题锚点/显式链接）、`index.js`（ProjectIndex 构建、实体、历史解析、Git 扫描）、`relations.js`（正式关系与目标解析）、`diagnostics.js`、`projections.js`（兼容快照、文档目录与文档地图投影）、`entity-detail.js`（实体详情/原文投影与 ID 安全校验）、`search.js`（结构化搜索）、`history.js`（语义历史时间线）、`graph.js`（decision/ticket 依赖 DAG）、`relation-graph.js`（局部关系图）。
 - `src/server/`：`refresh-store.js`（指纹轮询、完整重建、原子替换、stale）、`static.js`（同源静态资源与安全头）、`markdown-render.js`（受限 markdown-it 渲染：html 关闭、linkify/图片禁用、链接按解析状态应用安全规则）。
-- `src/web/`：`index.html` + `app.js`（History API 路由、SSE 协调、视图分发）+ `views/*.js`（八个视图纯函数）+ `graph.js`（原生 SVG 有界图布局）+ `styles.css`（编辑式极简）。
+- `src/web/`：`index.html` + `app.js`（History API 路由、SSE 协调、视图分发）+ `views/*.js`（文档入口、地图、阅读与兼容视图纯函数）+ `graph.js`（原生 SVG 有界图布局）+ `styles.css`（编辑式极简）。
 - API：`/api/snapshot`、`/api/entities/:id`、`/api/entities/:id/raw`、`/api/search`、`/api/history`、`/api/graph`、`/api/relations`、`/events`；客户端只按稳定实体 ID 请求，静态资源与 API 拒绝路径穿越，响应带明确 MIME、`nosniff` 与同源 CSP。
 
 ## 依赖与质量

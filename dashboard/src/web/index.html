@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="CodeStable 项目文档导航与阅读工作台">
+  <meta name="description" content="CodeStable 项目资料的本地只读阅读器">
   <meta name="theme-color" content="#f6f3ee">
   <title>CodeStable · 文档工作台</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2326231d'/%3E%3Ctext x='16' y='21.5' font-family='monospace' font-size='14' font-weight='700' text-anchor='middle' fill='%23fdfaf3'%3ECS%3C/text%3E%3C/svg%3E">
@@ -13,13 +13,21 @@
 <body>
   <a class="skip-link" href="#app">跳到主要内容</a>
   <header class="topbar">
-    <button type="button" id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav" aria-label="打开导航">
+    <button type="button" id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav" aria-label="打开资料导航">
       <span aria-hidden="true">导航</span>
     </button>
-    <span class="topbar-context">CodeStable</span>
+    <a class="brand topbar-brand" href="?view=documents" data-view="documents">
+      <span class="brand-mark" aria-hidden="true">CS</span>
+      <span>CodeStable</span>
+    </a>
+    <nav id="primary-nav" class="primary-nav" aria-label="主要入口">
+      <a href="?view=documents" data-view="documents">资料</a>
+      <a href="?view=map" data-view="map">地图</a>
+      <a href="?view=history" data-view="history">历史</a>
+    </nav>
     <div class="topbar-right">
       <div id="snapshot-state" class="snapshot-state" role="status"></div>
-      <button type="button" id="refresh-btn" class="icon-button" aria-label="手动刷新快照" title="手动刷新快照">
+      <button type="button" id="refresh-btn" class="icon-button" aria-label="手动刷新资料" title="手动刷新资料">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
           <polyline points="21 3 21 9 15 9"/>
@@ -27,17 +35,17 @@
       </button>
     </div>
   </header>
-  <div class="app-shell">
-    <nav id="nav" class="sidebar" aria-label="项目导航">
-      <a class="brand" href="?view=overview" data-view="overview">
-        <span class="brand-mark" aria-hidden="true">CS</span>
-        <span>CodeStable</span>
-      </a>
-      <div id="nav-content">
-        <a class="nav-link is-active" href="?view=overview" data-view="overview">概览</a>
-      </div>
-    </nav>
-    <main id="app"></main>
-  </div>
+
+  <nav id="nav" class="library-nav" aria-label="项目导航">
+    <div class="nav-drawer-head">
+      <span class="eyebrow">LIBRARY</span>
+      <span class="nav-drawer-title">资料目录</span>
+    </div>
+    <div id="nav-content">
+      <a class="nav-link" href="?view=documents" data-view="documents">全部文档</a>
+    </div>
+  </nav>
+  <!-- ?view=overview remains a compatibility alias; the default entry is the document library. -->
+  <main id="app"></main>
 </body>
 </html>

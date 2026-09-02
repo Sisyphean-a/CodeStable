@@ -1,6 +1,6 @@
 // 结构化搜索：只查 ProjectIndex 已知实体的已确认字段，支持中文关键词、
 // 大小写不敏感英文、路径片段、多词 AND 与可见筛选。
-// 正文段落、任意 frontmatter 键值和未索引 Markdown 不参与搜索。
+// 正文段落参与术语搜索；任意 frontmatter 键值和未索引 Markdown 不参与搜索。
 
 const AUTHORITY_ORDER = [
   "environment",
@@ -11,13 +11,48 @@ const AUTHORITY_ORDER = [
   "evidence",
 ];
 
-// 每个实体的可搜索字段投影。
-function searchableEntity(index, entity, sourcesById, entitiesById) {
-  const source = entity.source ? sourcesById.get(entity.source.id) : null;
-  const outgoing = index.relations.filter(
-    (relation) => relation.from === entity.id,
+// ProjectIndex 在一次快照生命周期内不可变；缓存只读搜索投影，避免热查询重复扫描关系和正文。
+const SEARCH_CONTEXT_CACHE = new WeakMap();
+
+function searchContext(index) {
+  const cached = SEARCH_CONTEXT_CACHE.get(index);
+  if (cached) return cached;
+
+  const sourcesById = new Map(index.sources.map((source) => [source.id, source]));
+  const entitiesById = new Map(index.entities.map((entity) => [entity.id, entity]));
+  const relationsFrom = new Map();
+  for (const relation of index.relations) {
+    const list = relationsFrom.get(relation.from) ?? [];
+    list.push(relation);
+    relationsFrom.set(relation.from, list);
+  }
+  const context = { sourcesById, entitiesById, relationsFrom, projectionsById: new Map() };
+  SEARCH_CONTEXT_CACHE.set(index, context);
+  return context;
+}
+
+function getSearchableEntity(entity, context) {
+  const cached = context.projectionsById.get(entity.id);
+  if (cached) return cached;
+  const projection = searchableEntity(
+    entity,
+    context.sourcesById,
+    context.entitiesById,
+    context.relationsFrom,
   );
+  context.projectionsById.set(entity.id, projection);
+  return projection;
+}
+
+// 每个实体的可搜索字段投影。
+function searchableEntity(entity, sourcesById, entitiesById, relationsFrom) {
+  const source = entity.source ? sourcesById.get(entity.source.id) : null;
+  const outgoing = [
+    ...(relationsFrom.get(entity.id) ?? []),
+    ...(entity.source ? relationsFrom.get(entity.source.id) ?? [] : []),
+  ];
   const relationKinds = [...new Set(outgoing.map((relation) => relation.kind))];
+  const resolutions = [...new Set(outgoing.map((relation) => relation.resolution))];
   const relationTargets = [
     ...new Set(
       outgoing
@@ -46,6 +81,8 @@ function searchableEntity(index, entity, sourcesById, entitiesById) {
     headings: source?.headings.map((heading) => heading.text) ?? [],
     relationKinds,
     relationTargets,
+    resolutions,
+    content: contentWithoutHeadings(source?.content ?? ""),
     sourceOrder: entity.sourceOrder ?? 0,
   };
 }
@@ -118,8 +155,8 @@ function matchesEntity(term, entity) {
     ...entity.headings,
     ...entity.relationKinds,
     ...entity.relationTargets,
-  ];
-  if (
+    entity.content,
+  ];  if (
     fields.some((value) => fieldMatches(term, value)) ||
     matchesPathSegment(term, entity.path)
   ) {
@@ -166,6 +203,7 @@ function matchedFields(term, entity) {
       break;
     }
   }
+  if (fieldMatches(term, entity.content)) hits.push("正文");
   return [...new Set(hits)];
 }
 
@@ -238,8 +276,7 @@ export function searchProjection(index, options = {}) {
   const filters = parseFilters(options.filters);
   const includeUnindexed = options.includeUnindexed === true;
 
-  const sourcesById = new Map(index.sources.map((source) => [source.id, source]));
-  const entitiesById = new Map(index.entities.map((entity) => [entity.id, entity]));
+  const context = searchContext(index);
 
   // 未索引文档：仅在显式切换范围时列出路径与原因；不进搜索结果。
   const unindexed = includeUnindexed
@@ -271,9 +308,11 @@ export function searchProjection(index, options = {}) {
 
   const results = [];
   for (const entity of index.entities) {
-    const projection = searchableEntity(index, entity, sourcesById, entitiesById);
-    if (!applyFilters(projection, filters)) continue;
     if (entity.kind === "SourceDocument") continue;
+    // 先用原始实体做廉价筛选，避免 kind 过滤下为整份历史正文建立投影。
+    if (filters.kind && !filters.kind.includes(entity.kind)) continue;
+    const projection = getSearchableEntity(entity, context);
+    if (!applyFilters(projection, filters)) continue;
     if (terms.every((term) => matchesEntity(term, projection))) {
       const bestScore = Math.min(
         ...terms.map((term) => rankScore(term, projection)),
@@ -327,6 +366,7 @@ export function searchProjection(index, options = {}) {
       readiness: entity.readiness,
       validity: entity.validity,
       hitFields,
+      snippet: contentSnippet(entity.content, terms),
     })),
     total: results.length,
     unindexed,
@@ -344,5 +384,27 @@ export function searchFields() {
     "Decision/Ticket/ADR/Git 状态与 readiness",
     "历史日期、标签、范围、当前依据和证据标识",
     "正式关系类型、已解析关系目标与代码锚点",
+    "Markdown 正文中的可检索规范术语",
   ];
+}
+
+function contentWithoutHeadings(content) {
+  return String(content)
+    .split("\n")
+    .filter((line) => !/^\s*#{1,6}\s+/.test(line))
+    .join("\n");
+}
+
+function contentSnippet(content, terms) {
+  const text = String(content ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  const lowered = text.toLowerCase();
+  const position = terms
+    .map((term) => lowered.indexOf(term))
+    .filter((value) => value >= 0)
+    .sort((left, right) => left - right)[0];
+  if (position == null) return "";
+  const start = Math.max(0, position - 48);
+  const end = Math.min(text.length, position + 132);
+  return `${start > 0 ? "…" : ""}${text.slice(start, end)}${end < text.length ? "…" : ""}`;
 }

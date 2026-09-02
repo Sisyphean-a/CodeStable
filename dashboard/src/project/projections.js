@@ -5,6 +5,30 @@ import { basename } from "node:path";
 import { firstHeading } from "./markdown.js";
 import { DiagnosticCodes } from "./diagnostics.js";
 
+const DOCUMENT_ENTITY_KINDS = new Set([
+  "AttentionDocument",
+  "ArchitectureIndex",
+  "ArchitectureDocument",
+  "RequirementIndex",
+  "RequirementDocument",
+  "ADR",
+  "HistoryDocument",
+  "DecisionMap",
+  "Decision",
+  "Specification",
+  "Ticket",
+  "ReaderDocument",
+  "Skill",
+]);
+
+const DOCUMENT_GROUP_ORDER = new Map([
+  ["当前态", 0],
+  ["包与能力", 1],
+  ["工作状态资料", 2],
+  ["历史", 3],
+  ["读者与技能资料", 4],
+]);
+
 export function createSnapshotProjection(index, snapshotState) {
   const { entities, sources, relations } = index;
   const sourcesById = new Map(sources.map((source) => [source.id, source]));
@@ -92,6 +116,8 @@ export function createSnapshotProjection(index, snapshotState) {
   const entitySummaries = entities.map((entity) =>
     entitySummary(entity, sourcesById),
   );
+  const documents = createDocumentProjection(index);
+  const documentMap = createDocumentMapProjection(index, documents);
 
   return {
     schemaVersion: index.schemaVersion,
@@ -109,6 +135,8 @@ export function createSnapshotProjection(index, snapshotState) {
     scannedAt: index.generatedAt,
     snapshot: state,
     diagnostics: diagnosticSummary,
+    documents,
+    documentMap,
     overview: buildOverview(index, {
       maps,
       deliveries,
@@ -122,6 +150,138 @@ export function createSnapshotProjection(index, snapshotState) {
     }),
     entities: entitySummaries,
   };
+}
+
+// 文档投影：所有受支持的 Markdown 来源只在这里统一映射为可读入口。
+// 页面、搜索与节点地图共享同一份 source → entity 映射，避免各自猜测路径。
+export function createDocumentProjection(index) {
+  const entityBySource = new Map();
+  for (const entity of index.entities) {
+    if (!entity.source || !DOCUMENT_ENTITY_KINDS.has(entity.kind)) continue;
+    const current = entityBySource.get(entity.source.id);
+    if (!current || documentEntityPriority(entity.kind) < documentEntityPriority(current.kind)) {
+      entityBySource.set(entity.source.id, entity);
+    }
+  }
+
+  const historyCounts = new Map();
+  for (const entity of index.entities) {
+    if (entity.kind !== "HistoryEntry" || !entity.source?.id) continue;
+    historyCounts.set(entity.source.id, (historyCounts.get(entity.source.id) ?? 0) + 1);
+  }
+
+  return index.sources
+    .filter((source) => source.category !== "unindexed")
+    .map((source) => {
+      const entity = entityBySource.get(source.id);
+      if (!entity) return null;
+      const headings = source.headings.map((heading) => ({
+        text: heading.text,
+        anchor: heading.anchor,
+      }));
+      return {
+        id: entity.id,
+        title: entity.title,
+        path: source.path,
+        kind: entity.kind,
+        category: source.category,
+        group: documentGroup(source.path, source.category),
+        authority: entity.authority,
+        scope: entity.scope ?? null,
+        validity: source.validity,
+        status: source.validity === "valid" ? "available" : source.validity,
+        modifiedAt: source.modifiedAt,
+        headings,
+        ...(source.category === "history"
+          ? { entryCount: historyCounts.get(source.id) ?? 0 }
+          : {}),
+      };
+    })
+    .filter(Boolean)
+    .sort(compareDocuments);
+}
+
+// 节点地图只画文档到文档的事实关系；代码锚点、文件和外部目标保留在阅读页/诊断中，
+// 不冒充可打开的文档节点。未解析关系保留为无目标边，供 UI 明确显示失败原因。
+export function createDocumentMapProjection(index, documents = createDocumentProjection(index)) {
+  const documentIds = new Set(documents.map((document) => document.id));
+  const documentBySource = new Map();
+  for (const document of documents) {
+    documentBySource.set(`source:${document.path}`, document.id);
+  }
+  const documentIdFor = (endpoint) => {
+    if (!endpoint) return null;
+    if (documentIds.has(endpoint)) return endpoint;
+    return documentBySource.get(endpoint) ?? null;
+  };
+
+  const nodes = documents.map((document) => ({
+    id: document.id,
+    title: document.title,
+    path: document.path,
+    kind: document.kind,
+    category: document.category,
+    group: document.group,
+    scope: document.scope,
+    validity: document.validity,
+    sourceId: `source:${document.path}`,
+  }));
+  const edges = [];
+  const seen = new Set();
+  for (const relation of index.relations) {
+    const from = documentIdFor(relation.from);
+    if (!from) continue;
+    const to = documentIdFor(relation.to);
+    if (relation.to && !to) continue;
+    if (to && from === to) continue;
+    const key = `${relation.id}:${from}:${to ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    edges.push({
+      id: relation.id,
+      from,
+      to,
+      kind: relation.kind,
+      resolution: relation.resolution,
+      originalTarget: relation.originalTarget ?? null,
+      provenance: relation.provenance ?? null,
+      targetEndpoint: relation.to ?? null,
+    });
+  }
+  edges.sort((left, right) => left.id.localeCompare(right.id));
+
+  return {
+    nodes,
+    edges,
+    counts: {
+      nodes: nodes.length,
+      edges: edges.length,
+      unresolved: edges.filter((edge) => edge.resolution !== "resolved").length,
+    },
+  };
+}
+
+function documentEntityPriority(kind) {
+  if (kind === "HistoryDocument") return 0;
+  if (kind === "CodeAnchor" || kind === "HistoryEntry") return 99;
+  return 1;
+}
+
+export function documentGroup(path, category) {
+  if (category === "current-state" && path.startsWith(".codestable/architecture/packages/")) {
+    return "包与能力";
+  }
+  if (category === "current-state") return "当前态";
+  if (category === "work-state") return "工作状态资料";
+  if (category === "history") return "历史";
+  return "读者与技能资料";
+}
+
+function compareDocuments(left, right) {
+  const leftOrder = DOCUMENT_GROUP_ORDER.get(left.group) ?? 99;
+  const rightOrder = DOCUMENT_GROUP_ORDER.get(right.group) ?? 99;
+  if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+  return left.path.localeCompare(right.path);
 }
 
 function entitySummary(entity, sourcesById) {

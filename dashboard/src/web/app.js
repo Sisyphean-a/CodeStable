@@ -11,6 +11,7 @@ import { renderHistory } from "./views/history.js";
 import { renderDocuments } from "./views/documents.js";
 import { renderRelations } from "./views/relations.js";
 import { renderReader } from "./views/reader.js";
+import { renderMap } from "./views/map.js";
 
 export const VIEWS = {
   overview: renderOverview,
@@ -19,40 +20,49 @@ export const VIEWS = {
   delivery: renderDelivery,
   history: renderHistory,
   documents: renderDocuments,
+  map: renderMap,
   relations: renderRelations,
   reader: renderReader,
 };
 
-const DEFAULT_VIEW = "overview";
+// 首页的语义是“全部资料入口”；overview 作为旧链接的兼容别名保留。
+const DEFAULT_VIEW = "documents";
 
-// URL 状态：view / entity / query / filters / depth（+ 视图专属 theme/historyFilters/unindexed）。
+// URL 状态：view / entity / query / filters / depth / mapQuery（+ 历史筛选）。
 export function parseUrl(search) {
   const params = new URLSearchParams(search);
-  const view = params.get("view") ?? DEFAULT_VIEW;
+  const requestedView = params.get("view");
+  const view = requestedView == null
+    ? DEFAULT_VIEW
+    : Object.hasOwn(VIEWS, requestedView)
+      ? requestedView
+      : "overview";
   return {
-    view: Object.hasOwn(VIEWS, view) ? view : DEFAULT_VIEW,
+    view,
     entity: params.get("entity") ?? "",
     query: params.get("query") ?? "",
     filters: params.get("filters") ?? "",
     depth: params.get("depth") ?? "",
+    mapQuery: params.get("mapQuery") ?? "",
     theme: params.get("theme") ?? "",
     historyFilters: params.get("historyFilters") ?? "",
     unindexed: params.get("unindexed") ?? "",
   };
 }
 
-export function buildUrl(urlState) {
+export function buildUrl(urlState = {}) {
   const params = new URLSearchParams();
-  if (urlState.view !== DEFAULT_VIEW) params.set("view", urlState.view);
+  if (urlState.view && urlState.view !== DEFAULT_VIEW) params.set("view", urlState.view);
   if (urlState.entity) params.set("entity", urlState.entity);
   if (urlState.query) params.set("query", urlState.query);
   if (urlState.filters) params.set("filters", urlState.filters);
   if (urlState.depth) params.set("depth", urlState.depth);
+  if (urlState.mapQuery) params.set("mapQuery", urlState.mapQuery);
   if (urlState.theme) params.set("theme", urlState.theme);
   if (urlState.historyFilters) params.set("historyFilters", urlState.historyFilters);
   if (urlState.unindexed) params.set("unindexed", urlState.unindexed);
   const search = params.toString();
-  return search ? `?${search}` : "?view=overview";
+  return search ? `?${search}` : `?view=${DEFAULT_VIEW}`;
 }
 
 function escapeAttribute(value) {
@@ -95,65 +105,59 @@ function navigationGroup(title, items, index, collapsed = false) {
 }
 
 export function buildNavigation(snapshot) {
-  const entities = snapshot?.entities ?? [];
+  const documents = navigationDocuments(snapshot);
   const sorted = (items) => [...items].sort((left, right) =>
     String(left.path ?? left.title).localeCompare(String(right.path ?? right.title)),
   );
-  const entityLink = (entity) =>
-    navigationItem(
-      entity.scope?.startsWith("package:") ? entity.scope : entity.title,
-      `?view=reader&entity=${encodeURIComponent(entity.id)}`,
-      { entity: entity.id, path: entity.path },
-    );
-  const packageDocs = sorted(
-    entities.filter(
-      (entity) =>
-        entity.kind === "ArchitectureDocument" &&
-        entity.path?.startsWith(".codestable/architecture/packages/"),
-    ),
+  const documentLink = (document) => navigationItem(
+    document.group === "包与能力" && document.scope?.startsWith("package:")
+      ? document.scope
+      : document.title,
+    `?view=reader&entity=${encodeURIComponent(document.id)}`,
+    { entity: document.id, path: document.path },
   );
-  const currentStateDocs = sorted(
-    entities.filter(
-      (entity) =>
-        CURRENT_STATE_KINDS.has(entity.kind) &&
-        !entity.path?.startsWith(".codestable/architecture/packages/"),
-    ),
-  );
-  const readme = entities.find(
-    (entity) => entity.kind === "ReaderDocument" && entity.path === "README.md",
-  );
+  const byGroup = (group) => sorted(documents.filter((document) => document.group === group));
+  const historyItems = [
+    navigationItem("历史时间线", "?view=history", {
+      view: "history",
+      path: ".codestable/history/",
+    }),
+    ...byGroup("历史").map(documentLink),
+  ];
   const groups = [
     navigationGroup(
-      "项目",
-      [navigationItem("概览", "?view=overview", { view: "overview" })],
+      "入口",
+      [
+        navigationItem("全部文档", "?view=documents", { view: "documents" }),
+        navigationItem("节点地图", "?view=map", { view: "map" }),
+      ],
       0,
     ),
-    navigationGroup("包与能力", packageDocs.map(entityLink), 1),
-    navigationGroup("当前态", currentStateDocs.map(entityLink), 2),
-    navigationGroup(
-      "变化",
-      [navigationItem("历史时间线", "?view=history", { view: "history", path: ".codestable/history/" })],
-      3,
-    ),
-    navigationGroup(
-      "文档",
-      [
-        ...(readme ? [entityLink(readme)] : []),
-        navigationItem("全部文档", "?view=documents", { view: "documents" }),
-      ],
-      4,
-    ),
+    navigationGroup("包与能力", byGroup("包与能力").map(documentLink), 1),
+    navigationGroup("当前态", byGroup("当前态").map(documentLink), 2),
+    navigationGroup("工作状态资料", byGroup("工作状态资料").map(documentLink), 3, true),
+    navigationGroup("历史", historyItems, 4, true),
+    navigationGroup("读者与技能资料", byGroup("读者与技能资料").map(documentLink), 5, true),
   ];
-  const workStateItems = [];
-  if (snapshot?.overview?.hasWayfinding) {
-    workStateItems.push(navigationItem("探路", "?view=wayfinding", { view: "wayfinding" }));
-  }
-  if (snapshot?.overview?.hasDelivery) {
-    workStateItems.push(navigationItem("交付", "?view=delivery", { view: "delivery" }));
-  }
-  workStateItems.push(navigationItem("关系", "?view=relations", { view: "relations" }));
-  groups.push(navigationGroup("工作状态", workStateItems, 5, true));
   return groups.join("");
+}
+
+function navigationDocuments(snapshot) {
+  if (Array.isArray(snapshot?.documents)) return snapshot.documents;
+  return (snapshot?.entities ?? [])
+    .filter((entity) => entity.path && entity.kind !== "HistoryEntry")
+    .map((entity) => ({
+      ...entity,
+      group: entity.path.startsWith(".codestable/architecture/packages/")
+        ? "包与能力"
+        : entity.kind === "HistoryDocument"
+          ? "历史"
+          : entity.authority === "work-state"
+            ? "工作状态资料"
+            : entity.authority === "current-state"
+              ? "当前态"
+              : "读者与技能资料",
+    }));
 }
 
 // ---- 浏览器运行时（boot 前不触碰 DOM）----
@@ -304,7 +308,7 @@ export function createWorkbench(dom) {
           : null;
       if (interactive) return;
       const box = dom.document.querySelector(
-        "#search-input, #history-theme, #relation-entity",
+        "#search-input, #map-search-input, #history-theme, #relation-entity",
       );
       if (!box) return;
       event.preventDefault();
@@ -357,27 +361,30 @@ export function createWorkbench(dom) {
       app.innerHTML = renderReader(snapshot, urlState, readerDetail, readerLoadError);
     } else if (urlState.view === "documents") {
       app.innerHTML = renderDocuments(snapshot, urlState, searchResult);
-      bindDocumentsActions();
+    } else if (urlState.view === "map") {
+      app.innerHTML = renderMap(snapshot, urlState);
     } else if (urlState.view === "history") {
       app.innerHTML = renderHistory(snapshot, urlState, historyData);
-      bindHistoryActions();
     } else if (urlState.view === "wayfinding") {
       app.innerHTML = renderWayfinding(snapshot, urlState, graphData);
     } else if (urlState.view === "delivery") {
       app.innerHTML = renderDelivery(snapshot, urlState, graphData);
     } else if (urlState.view === "relations") {
       app.innerHTML = renderRelations(snapshot, urlState, relationData, relationError);
-      bindRelationsActions();
     } else {
       app.innerHTML = view(snapshot, urlState);
     }
-    dom.document.title = `${snapshot?.overview?.identity?.name ?? "CodeStable"} · 文档工作台`;
+    bindDocumentsActions();
+    if (urlState.view === "map") bindMapActions();
+    if (urlState.view === "history") bindHistoryActions();
+    if (urlState.view === "relations") bindRelationsActions();
+    dom.document.title = `${snapshot?.overview?.identity?.name ?? "CodeStable"} · 文档阅读器`;
     dom.window.scrollTo(0, previousScroll || scrollY);
     updateNavigation();
     updateSnapshotState();
   }
 
-  // 文档搜索：表单提交与筛选变化写入 URL 并重新查询。
+  // 首页与文档目录共用搜索入口；提交后进入可复制的 documents URL。
   function bindDocumentsActions() {
     const form = dom.document.querySelector("#search-form");
     if (!form) return;
@@ -388,20 +395,37 @@ export function createWorkbench(dom) {
       const filters = collectFilters(form);
       const unindexed = form.querySelector('input[name="unindexed"]')?.checked ? "1" : "";
       scrollY = dom.window.scrollY;
+      const targetView = form.dataset.targetView ?? "documents";
       urlState = {
         ...urlState,
+        view: targetView,
+        entity: "",
         query,
         filters: filters.join(","),
         unindexed,
       };
       dom.window.history.pushState(urlState, "", buildUrl(urlState));
-      loadSearch();
+      if (targetView === "documents") loadSearch();
+      else render();
     });
     for (const select of form.querySelectorAll("select[name]") ?? []) {
       select.addEventListener("change", () => form.requestSubmit());
     }
     const unindexedToggle = form.querySelector('input[name="unindexed"]');
     unindexedToggle?.addEventListener("change", () => form.requestSubmit());
+  }
+
+  function bindMapActions() {
+    const form = dom.document.querySelector("#map-filter");
+    if (!form) return;
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const query = form.querySelector("#map-search-input")?.value.trim() ?? "";
+      scrollY = dom.window.scrollY;
+      urlState = { ...urlState, view: "map", entity: "", mapQuery: query };
+      dom.window.history.pushState(urlState, "", buildUrl(urlState));
+      render();
+    });
   }
 
   function collectFilters(form) {
@@ -431,11 +455,17 @@ export function createWorkbench(dom) {
         signal: AbortSignal.timeout(5000),
       });
       searchResult = await response.json();
-    } catch {
+    } catch (error) {
       searchError = true;
+      searchResult = {
+        error: error instanceof Error ? error.message : "搜索请求失败",
+        query: urlState.query,
+        total: 0,
+        results: [],
+        filters: {},
+      };
     }
     render();
-    bindDocumentsActions();
   }
 
   // 历史筛选表单：提交写入 URL 并重新查询。
@@ -474,7 +504,6 @@ export function createWorkbench(dom) {
       historyError = true;
     }
     render();
-    bindHistoryActions();
   }
 
   // 关系页：实体选择与筛选写入 URL 并重新查询。
@@ -528,7 +557,6 @@ export function createWorkbench(dom) {
       relationError = "load-failed";
     }
     render();
-    bindRelationsActions();
   }
 
   // 依赖图异步加载（探路/交付视图，实体选中时）。
@@ -577,7 +605,11 @@ export function createWorkbench(dom) {
   }
 
   function updateNavigation() {
-    for (const link of nav?.querySelectorAll("a[data-view], a[data-entity]") ?? []) {
+    const links = [
+      ...(nav?.querySelectorAll("a[data-view], a[data-entity]") ?? []),
+      ...(dom.document.querySelectorAll?.("#primary-nav a[data-view], .topbar-brand[data-view]") ?? []),
+    ];
+    for (const link of links) {
       const viewMatch = link.dataset.view === urlState.view;
       const entityMatch =
         urlState.view === "reader" && link.dataset.entity === urlState.entity;
@@ -629,6 +661,8 @@ export function createWorkbench(dom) {
       loadReaderDetail(urlState.entity);
     } else if (urlState.view === "documents") {
       loadSearch();
+    } else if (urlState.view === "map") {
+      render();
     } else if (urlState.view === "history") {
       loadHistory();
     } else if (urlState.view === "wayfinding" || urlState.view === "delivery") {
@@ -689,6 +723,8 @@ export function createWorkbench(dom) {
         updateSnapshotState();
       } else if (urlState.view === "documents") {
         loadSearch();
+      } else if (urlState.view === "map") {
+        render();
       } else if (urlState.view === "history") {
         loadHistory();
       } else if (urlState.view === "wayfinding" || urlState.view === "delivery") {

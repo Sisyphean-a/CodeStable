@@ -26,7 +26,8 @@ export function isValidEntityId(entityId) {
 }
 
 // 一跳关系：出向 + 入向（反向引用由同一关系派生）。
-function oneHopRelations(relations, entitiesById, entityId) {
+function oneHopRelations(relations, entitiesById, entityId, sourceId = null) {
+  const outgoingFrom = new Set([entityId, sourceId].filter(Boolean));
   const project = (relation, direction) => {
     const target = relation.to ? entitiesById.get(relation.to) : null;
     return {
@@ -42,7 +43,7 @@ function oneHopRelations(relations, entitiesById, entityId) {
     };
   };
   const outgoing = relations
-    .filter((relation) => relation.from === entityId)
+    .filter((relation) => outgoingFrom.has(relation.from))
     .map((relation) => project(relation, "outgoing"))
     .sort(byKindThenTarget);
   const incoming = relations
@@ -82,8 +83,7 @@ export function entityDetailProjection(index, entityId) {
     }
   }
 
-  const hasMarkdown = source !== null && source.content !== "";
-  const renderer = createMarkdownRenderer(linkMap);
+  const hasMarkdown = source !== null && source.validity !== "unavailable";
   const meta = { ...entity };
   delete meta.source;
   const detail = {
@@ -97,13 +97,16 @@ export function entityDetailProjection(index, entityId) {
           id: source.id,
           path: source.path,
           category: source.category,
+          validity: source.validity,
+          status: source.validity === "valid" ? "available" : source.validity,
           modifiedAt: source.modifiedAt,
         }
       : null,
     meta,
     hasMarkdown,
+    status: source?.validity === "valid" ? "available" : source?.validity ?? "unavailable",
     headings: source?.headings ?? [],
-    relations: oneHopRelations(index.relations, entitiesById, entity.id),
+    relations: oneHopRelations(index.relations, entitiesById, entity.id, source?.id),
     diagnostics: (index.diagnostics ?? []).filter(
       (diagnostic) =>
         diagnostic.source === entity.id ||

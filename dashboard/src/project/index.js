@@ -232,10 +232,14 @@ export async function buildProjectIndex(projectRoot, previous) {
     });
   }
 
-  // ---- 历史实体 ----
+  // ---- 历史文档与条目 ----
+  // 月文件本身也是可读资料；条目实体继续保留，分别服务目录和历史时间线。
   const historyEntries = [];
   for (const source of sources) {
     if (source.category !== "history") continue;
+    const historyDocument = documentEntity(source, "HistoryDocument", "history");
+    addEntity(historyDocument);
+    entitiesByPath.set(source.path, historyDocument.id);
     historyEntries.push(...parseHistoryEntries(source, diagnostics));
   }
   for (const entry of historyEntries) addEntity(entry);
