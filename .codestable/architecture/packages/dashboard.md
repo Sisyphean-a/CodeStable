@@ -18,7 +18,7 @@ code-paths:
 ## 职责与边界
 
 - `bin/cs.js` 只分发命令并报告用户输入错误。
-- 每次扫描构建一个有类型的只读 `ProjectIndex`（`schemaVersion`、`project`、`sources`、`entities`、`relations`、`diagnostics`、`generatedAt`）；资料源只解析一次，页面与 API 只能消费索引投影，不能各自重新解释项目文件。
+- 每次扫描构建一个有类型的只读 `ProjectIndex`（当前 `schemaVersion: 2`，包含 `project`、`sources`、`entities`、`relations`、`diagnostics`、`generatedAt`）；资料源只解析一次，页面与 API 只能消费索引投影，不能各自重新解释项目文件。
 - 实体使用稳定 ID（`<kind>:<仓库相对路径>`、`HistoryEntry:<月文件>:<日期>:<序号>`、`GitCommit:<完整hash>`、`CodeAnchor:<符号>`），不泄露 Windows 绝对路径；decision/ticket readiness（frontier/ready、claimed、blocked、none、unknown）从状态、认领者与硬依赖派生，不写回项目文件。
 - 正式关系只来自目录契约、规范字段、Markdown 链接、当前依据、来源、evidence、代码锚点和可验证 Git 事实，保留 `kind`、provenance 与 `resolved | unresolved | external | unsafe` 解析状态；反向引用由同一关系派生。
 - 诊断（`error | warning | info`）覆盖缺失、未知枚举、重复 ID、坏链接、缺失依赖、越界路径、历史格式错误、读取失败与 Git 不可用；缺失、冲突、未知和失败不得静默降级为成功或空集合。

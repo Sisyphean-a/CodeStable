@@ -23,7 +23,6 @@ const SUPPORTED_RULES = [
   { pattern: /^\.codestable\/requirements\/CONTEXT\.md$/, category: CATEGORY_CURRENT_STATE },
   { pattern: /^\.codestable\/requirements\/contexts\/.*\.md$/, category: CATEGORY_CURRENT_STATE },
   { pattern: /^\.codestable\/requirements\/shared\/.*\.md$/, category: CATEGORY_CURRENT_STATE },
-  { pattern: /^\.codestable\/requirements\/adrs\/.*\.md$/, category: CATEGORY_CURRENT_STATE },
   { pattern: /^\.codestable\/history\/.*\.md$/, category: CATEGORY_HISTORY },
   { pattern: /^\.wayfinding\/[^/]+\/map\.md$/, category: CATEGORY_WORK_STATE },
   { pattern: /^\.wayfinding\/[^/]+\/decisions\/.*\.md$/, category: CATEGORY_WORK_STATE },

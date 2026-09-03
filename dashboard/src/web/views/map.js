@@ -18,7 +18,6 @@ const RELATION_LABELS = {
   "source-of": "来源",
   "current-basis": "当前依据",
   evidence: "证据",
-  supersedes: "替代",
 };
 
 const NODE_WIDTH = 226;

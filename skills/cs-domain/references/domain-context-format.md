@@ -9,10 +9,9 @@
 │   └── <scope>.md
 ├── contexts/
 │   └── <context>.md
-└── adrs/
 ```
 
-按需创建文件和目录。`CONTEXT.md` 是作用域地图，也是 `workspace` 事实的唯一位置；`shared/` 与 `contexts/` 只在对应事实首次出现时创建。领域上下文是业务语言边界，可映射到一个或多个代码包。
+按需创建 `shared/`、`contexts/` 及其中的文件；开发初始化时必须创建 `.codestable/history/`。`CONTEXT.md` 是作用域地图，也是 `workspace` 事实的唯一位置；`shared/` 与 `contexts/` 只在对应事实首次出现时创建。领域上下文是业务语言边界，可映射到一个或多个代码包。
 
 ## 根上下文
 

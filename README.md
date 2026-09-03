@@ -71,7 +71,7 @@ cs web
 /skill:cs-feat 增加一个用户可见的筛选功能
 /skill:cs-issue 修复登录失败的问题
 /skill:cs-refactor 在不改变行为的前提下拆分这个模块
-/skill:show-me 画出一次请求从入口到回包怎么走
+/skill:cs-explain 讲清一次请求从入口到回包怎么走
 /skill:cs-learn 带我学习这个请求全线路的实现
 /skill:cs-checkpoint save checkout-flow
 /skill:cs-checkpoint resume checkout-flow
@@ -93,7 +93,7 @@ cs web
 | `cs-domain` | 自动 | 把已确认的术语、规则、架构边界、决定和每轮必读规则写入唯一权威当前态 |
 | `cs-memory-guard` | 自动 | 发现确定的 `.codestable` 结构违规时，修复局部文档；语义冲突保留并报告 |
 | `cs-onboard` | 手动 | 初始化项目记忆，或迁移整套旧 `.codestable` |
-| `show-me` | 自动 | 用图、树、伪代码、diff 或 HTML 直观讲清流程、结构、状态与变化 |
+| `cs-explain` | 自动 | 解释当前项目的能力、接口、模块、调用流程与设计意图，并按需使用图、树、伪代码、diff 或 HTML |
 | `cs-learn` | 自动 | 以当前项目的函数、流程、改造或技术为教材带读和练习 |
 | `cs-docs` | 自动 | 编写面向用户或开发者的指南、教程、API 参考和独立流程文档 |
 | `cs-docs-neat` | 手动 | 剪枝已有项目记忆，删除重复或陈旧材料 |

@@ -12,7 +12,6 @@ const ALL_KINDS = [
   "source-of",
   "current-basis",
   "evidence",
-  "supersedes",
   "code-anchor",
 ];
 

@@ -20,7 +20,7 @@ const DIRECTORY_GROUPS = [
   {
     key: "当前态",
     title: "当前态",
-    sub: "注意力规则、架构、领域与已确认决定",
+    sub: "注意力规则、架构、领域与稳定规则",
     category: "current-state",
   },
   {
@@ -86,8 +86,6 @@ export function renderDocuments(snapshot, urlState = {}, searchResult = null) {
           unknown: "未知",
           clean: "clean",
           changed: "changed",
-          accepted: "accepted",
-          superseded: "superseded",
           unavailable: "不可用",
         }, activeFilters)}
         ${selectFilter("Readiness", "readiness", {
@@ -111,7 +109,6 @@ export function renderDocuments(snapshot, urlState = {}, searchResult = null) {
           "source-of": "source-of",
           "current-basis": "current-basis",
           evidence: "evidence",
-          supersedes: "supersedes",
           "code-anchor": "code-anchor",
         }, activeFilters)}
       </div>
@@ -137,7 +134,6 @@ function documentList(snapshot) {
     "ArchitectureDocument",
     "RequirementIndex",
     "RequirementDocument",
-    "ADR",
     "HistoryDocument",
     "DecisionMap",
     "Decision",
@@ -293,7 +289,6 @@ function kindLabels() {
     ArchitectureDocument: "ArchitectureDocument",
     RequirementIndex: "RequirementIndex",
     RequirementDocument: "RequirementDocument",
-    ADR: "ADR",
     HistoryDocument: "HistoryDocument",
     DecisionMap: "DecisionMap",
     Decision: "Decision",

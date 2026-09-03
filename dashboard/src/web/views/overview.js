@@ -12,7 +12,7 @@ const GROUPS = [
   {
     key: "当前态",
     title: "当前态",
-    sub: "注意力规则、架构、领域与已确认决定",
+    sub: "注意力规则、架构、领域与稳定规则",
   },
   {
     key: "包与能力",
@@ -82,7 +82,6 @@ function documentList(snapshot) {
     "ArchitectureDocument",
     "RequirementIndex",
     "RequirementDocument",
-    "ADR",
     "HistoryDocument",
     "DecisionMap",
     "Decision",

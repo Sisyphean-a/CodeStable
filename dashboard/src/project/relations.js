@@ -18,7 +18,6 @@ const RELATION_KINDS = new Set([
   "source-of",
   "current-basis",
   "evidence",
-  "supersedes",
   "code-anchor",
 ]);
 
@@ -44,7 +43,6 @@ export async function buildRelations(ctx) {
   await addDirectoryContainment(ctx, push);
   await addDependencies(ctx, push);
   await addSourceOf(ctx, push);
-  await addSupersedes(ctx, push);
   await addMarkdownLinks(ctx, push);
   await addHistoryBasisAndEvidence(ctx, push);
   await addCodeAnchors(ctx, push);
@@ -228,31 +226,6 @@ async function addSourceOf(ctx, push) {
   }
 }
 
-// ADR 替代：`superseded-by` 指向的 ADR。
-async function addSupersedes(ctx, push) {
-  const { entities } = ctx;
-  for (const entity of entities) {
-    if (entity.kind !== "ADR") continue;
-    const source = entity.source ? ctx.sourcesById.get(entity.source.id) : null;
-    const fieldValue = source?.frontmatter["superseded-by"];
-    if (!fieldValue) continue;
-    const resolved = await resolveRelativeTarget(ctx, entity.id.replace(/^ADR:/, ""), fieldValue);
-    if (resolved?.resolution === "resolved") {
-      push(entity.id, resolved.targetId, "supersedes", {
-        source: entity.source?.id,
-        field: "superseded-by",
-        text: fieldValue,
-      }, "resolved");
-    } else {
-      push(entity.id, null, "supersedes", {
-        source: entity.source?.id,
-        field: "superseded-by",
-        text: fieldValue,
-      }, resolved?.resolution ?? "unresolved", fieldValue);
-    }
-  }
-}
-
 // Markdown 显式链接（含反向引用派生）。
 async function addMarkdownLinks(ctx, push) {
   const { sources, diagnostics } = ctx;
@@ -368,7 +341,7 @@ async function addHistoryBasisAndEvidence(ctx, push) {
 async function addCodeAnchors(ctx, push) {
   const { entities, entitiesByPath } = ctx;
   for (const entity of entities) {
-    if (!["ArchitectureIndex", "ArchitectureDocument", "RequirementIndex", "RequirementDocument", "ADR", "AttentionDocument"].includes(entity.kind)) continue;
+    if (!["ArchitectureIndex", "ArchitectureDocument", "RequirementIndex", "RequirementDocument", "AttentionDocument"].includes(entity.kind)) continue;
     const source = entity.source ? ctx.sourcesById.get(entity.source.id) : null;
     if (!source) continue;
     const anchors = [];

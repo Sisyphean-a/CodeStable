@@ -13,7 +13,7 @@ import { buildRelations } from "./relations.js";
 
 const execFileAsync = promisify(execFile);
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 const DECISION_STATES = new Map([
   ["打开", "open"],
@@ -33,7 +33,6 @@ const CURRENT_STATE_RULES = [
   { pattern: /^\.codestable\/requirements\/CONTEXT\.md$/, kind: "RequirementIndex" },
   { pattern: /^\.codestable\/requirements\/contexts\/.*\.md$/, kind: "RequirementDocument" },
   { pattern: /^\.codestable\/requirements\/shared\/.*\.md$/, kind: "RequirementDocument" },
-  { pattern: /^\.codestable\/requirements\/adrs\/.*\.md$/, kind: "ADR" },
 ];
 
 // 构建完整 ProjectIndex。previous 提供按路径+修改时间复用的 SourceDocument 缓存。

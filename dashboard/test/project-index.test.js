@@ -20,9 +20,6 @@ async function baseFixture() {
   const root = await mkdtemp(join(tmpdir(), "codestable-index-"));
   await mkdir(join(root, ".codestable", "architecture"), { recursive: true });
   await mkdir(join(root, ".codestable", "history"), { recursive: true });
-  await mkdir(join(root, ".codestable", "requirements", "adrs"), {
-    recursive: true,
-  });
   await mkdir(join(root, ".wayfinding", "sample", "decisions"), {
     recursive: true,
   });
@@ -90,7 +87,7 @@ test("builds a typed ProjectIndex with categories, entities, readiness and relat
   cleanup(t, root);
   const index = await buildProjectIndex(root);
 
-  assert.equal(index.schemaVersion, 1);
+  assert.equal(index.schemaVersion, 2);
   assert.equal(index.project.name, "Fixture Project");
 
   const categories = new Set(index.sources.map((source) => source.category));

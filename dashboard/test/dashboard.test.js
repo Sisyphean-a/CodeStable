@@ -141,7 +141,7 @@ test("discovers the nearest CodeStable project and derives map and delivery prog
   assert.equal(snapshot.deliveries[0].tickets.length, 3);
   assert.equal(snapshot.history[0].entries, 1);
   assert.equal(snapshot.snapshot.status, "fresh");
-  assert.equal(snapshot.schemaVersion, 1);
+  assert.equal(snapshot.schemaVersion, 2);
 });
 
 test("refreshes the served snapshot after a tracked project file changes", async (t) => {

@@ -13,7 +13,7 @@ export async function createScaleFixture(root) {
   await mkdir(join(root, ".codestable", "architecture", "shared"), {
     recursive: true,
   });
-  await mkdir(join(root, ".codestable", "requirements", "adrs"), {
+  await mkdir(join(root, ".codestable", "requirements", "contexts"), {
     recursive: true,
   });
   await writeFile(
@@ -38,11 +38,11 @@ export async function createScaleFixture(root) {
     );
   }
   for (let i = 1; i <= 30; i += 1) {
-    const path = `.codestable/requirements/adrs/adr-${String(i).padStart(2, "0")}.md`;
+    const path = `.codestable/requirements/contexts/context-${String(i).padStart(2, "0")}.md`;
     currentStateDocs.push(path);
     await writeFile(
       join(root, ...path.split("/")),
-      `---\n状态: accepted\n---\n\n# ADR ${i}\n`,
+      `---\nscope: context:context-${i}\n---\n\n# Context ${i}\n`,
     );
   }
 

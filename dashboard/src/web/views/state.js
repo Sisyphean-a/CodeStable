@@ -1,4 +1,4 @@
-// 当前态视图：按注意力规则 / 架构 / 领域与需求 / ADR 分组列出当前态资料。
+// 当前态视图：按注意力规则 / 架构 / 领域与需求分组列出当前态资料。
 // 左栏为分组锚点导航，右栏为各组内容。
 
 import {
@@ -16,7 +16,6 @@ const GROUPS = [
   { key: "ArchitectureDocument", title: "架构" },
   { key: "RequirementIndex", title: "领域上下文入口" },
   { key: "RequirementDocument", title: "领域与需求" },
-  { key: "ADR", title: "架构决定记录" },
 ];
 
 export function renderState(snapshot) {

@@ -232,7 +232,7 @@ test("overview projection follows the guided reading order and honors unconfigur
   );
   const snapshot = await createSnapshot(root);
 
-  assert.equal(snapshot.schemaVersion, 1);
+  assert.equal(snapshot.schemaVersion, 2);
   assert.equal(snapshot.snapshot.status, "fresh");
   assert.equal(snapshot.project.root, ".");
 

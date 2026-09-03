@@ -11,7 +11,6 @@ const DOCUMENT_ENTITY_KINDS = new Set([
   "ArchitectureDocument",
   "RequirementIndex",
   "RequirementDocument",
-  "ADR",
   "HistoryDocument",
   "DecisionMap",
   "Decision",
@@ -532,7 +531,6 @@ const CURRENT_STATE_KINDS = new Set([
   "ArchitectureDocument",
   "RequirementIndex",
   "RequirementDocument",
-  "ADR",
 ]);
 
 const READING_REASONS = {
@@ -541,7 +539,6 @@ const READING_REASONS = {
   ArchitectureDocument: "再看包职责、依赖、公开边界和代码锚点",
   RequirementIndex: "补充领域作用域、通用语言和稳定规则",
   RequirementDocument: "读取当前领域边界及其稳定规则",
-  ADR: "确认高代价架构决定及其替代关系",
 };
 
 const OVERVIEW_HISTORY_LIMIT = 5;
@@ -817,7 +814,7 @@ function attentionTicketReason(ticket) {
   return "前置工单已关闭且未被认领";
 }
 
-// 当前态资料入口顺序：注意力 → 架构索引 → 包/共享页 → 领域上下文 → 上下文/共享/ADR。
+// 当前态资料入口顺序：注意力 → 架构索引 → 包/共享页 → 领域上下文 → 上下文/共享。
 function currentStateReadingPath(index, sourcesById) {
   const order = [
     [".codestable/attention.md", "AttentionDocument"],
@@ -827,7 +824,6 @@ function currentStateReadingPath(index, sourcesById) {
     [".codestable/requirements/CONTEXT.md", "RequirementIndex"],
     [".codestable/requirements/contexts/", "RequirementDocument"],
     [".codestable/requirements/shared/", "RequirementDocument"],
-    [".codestable/requirements/adrs/", "ADR"],
   ];
   const result = [];
   for (const [prefix, kind] of order) {

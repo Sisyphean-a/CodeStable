@@ -18,7 +18,6 @@ const KIND_LABELS = {
   "source-of": "来源规格",
   "current-basis": "当前依据",
   evidence: "证据",
-  supersedes: "替代",
   "code-anchor": "代码锚点",
 };
 

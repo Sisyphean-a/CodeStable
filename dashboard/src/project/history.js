@@ -25,7 +25,7 @@ export function historyProjection(index, options = {}) {
     .map((entry) => {
       const chain = (relationsFrom.get(entry.id) ?? [])
         .filter((relation) =>
-          ["current-basis", "evidence", "supersedes", "links-to"].includes(
+          ["current-basis", "evidence", "links-to"].includes(
             relation.kind,
           ),
         )

@@ -81,7 +81,6 @@ const CURRENT_STATE_KINDS = new Set([
   "ArchitectureDocument",
   "RequirementIndex",
   "RequirementDocument",
-  "ADR",
 ]);
 
 function navigationItem(label, href, options = {}) {

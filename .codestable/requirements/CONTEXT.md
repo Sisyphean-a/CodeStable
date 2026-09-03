@@ -39,8 +39,8 @@ CodeStable 为 AI 编程工作提供可安装的技能和可选的本地只读�
 - 产品主线只有经用户整体确认并明确长期范围后才进入最窄的项目当前态；局部反馈用于合并、收窄或替代现行原则，不逐条追加，变化原因按记忆门槛留在非默认历史。
 - `cs-checkpoint` 仅按用户调用在 `.tmp/checkpoints/<task-name>.md` 保存多个大型任务各自的当前快照；恢复时核对工作区，完成时删除，不进入项目记忆或默认工作集。
 - `cs-learn` 只在当前对话中以项目代码和测试为教材，通过带读与理解验证教授函数、全线路实现和必要技术知识，不建立课程或学习记录。
-- `show-me` 负责视觉优先的即时讲解，输出与临时产物契约以其 [`SKILL.md`](../../skills/show-me/SKILL.md) 为唯一依据。读者流程文档只有用户明确要求时才由 `cs-docs` 创建或更新，写作与维护规则以[流程文档](../../skills/cs-docs/references/flow-doc.md)为准，其他技能不自动同步。
-- 项目记忆的价值门槛、规范格式、唯一归属和检索标准以[项目记忆模型](../../skills/cs-domain/references/memory-model.md)为唯一依据。
+- `cs-explain` 负责基于项目证据解释能力、接口、模块、流程和设计意图，并按问题选择文字、图、树、伪代码、diff 或临时 HTML。读者流程文档只有用户明确要求时才由 `cs-docs` 创建或更新，写作与维护规则以[流程文档](../../skills/cs-docs/references/flow-doc.md)为准，其他技能不自动同步。
+- 项目记忆的价值门槛、规范格式、唯一归属和检索标准以[项目记忆模型](../../skills/cs-domain/references/memory-model.md)为唯一依据；不创建独立决定文档，高代价取舍的必要原因写入受影响的唯一当前态页面并由月度历史保留变化与证据。
 - 确认后的事实必须只有一个当前权威位置；历史和 Pi 会话只说明原因与证据，不能覆盖当前态。
 - 访谈或探索中的局部结论先留在工作状态；依赖闭合并经整体确认后，才作为一个变化单元交给 `cs-domain` 归档。
 
@@ -51,7 +51,7 @@ CodeStable 为 AI 编程工作提供可安装的技能和可选的本地只读�
 - `skills/cs-domain/references/memory-model.md`
 - `skills/cs-goal/SKILL.md`
 - `skills/cs-feat/SKILL.md`
-- `skills/show-me/SKILL.md`
+- `skills/cs-explain/SKILL.md`
 - `skills/cs-learn/SKILL.md`
 - `skills/cs-docs/references/flow-doc.md`
 - `skills/cs-checkpoint/SKILL.md`
