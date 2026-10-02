@@ -21,6 +21,7 @@ code-paths:
 ## 稳定规则
 
 - 用户的首要变化是减少背景重复和整理负担，不是获得更多流程；普通工作直接交付，独立检查和集中访谈不成为强制阶段。
+- 部署与初始化只由显式调用的 `setup` 承担；日常技能与工作区入口只使用已配置好的工作区，不重复初始化。
 - 用户理解与工作知识有不同语义所有者；长期记录的归属、价值、证据、授权、更新与忘记以[助手上下文协议](../../../general-work/skills/memory/references/context-model.md)为唯一运行依据，不搬用编码项目记忆模型。
 - 真实记录只属于办公工作区。此仓库保存能力与空入口模板，不保存真实用户画像、人物关系或客户资料；源技能不成为后台服务或安全边界。
 - 当前工作结果仍由用户请求决定，主动沟通帮助澄清而不替用户改变目标。文件操作、恢复与格式验证由[文件纪律](../../../general-work/skills/work/references/files.md)及其格式参考约束。
@@ -32,4 +33,5 @@ code-paths:
 - `general-work/skills/grill-me/SKILL.md`
 - `general-work/skills/memory/SKILL.md`
 - `general-work/skills/record/SKILL.md`
+- `general-work/skills/setup/SKILL.md`
 - `general-work/workspace/AGENTS.md`

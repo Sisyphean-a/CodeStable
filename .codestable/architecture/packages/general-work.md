@@ -10,13 +10,13 @@ code-paths:
 
 ## 分发边界
 
-- `general-work/skills/<name>/SKILL.md`：五个入口 `work`、`check`、`grill-me`、`memory`、`record`。
+- `general-work/skills/<name>/SKILL.md`：六个入口 `work`、`check`、`grill-me`、`memory`、`record`，以及只由用户显式调用、独占部署与初始化的 `setup`。
 - `skills/memory/references/context-model.md`：整套能力的唯一运行上下文协议，其他技能通过相对链接消费，不复制协议。
 - `skills/work/references/`：文件纪律与 Word/PPT/Excel 参考，检查技能复用格式依据。
 - `workspace/AGENTS.md`、`workspace/.assistant/INDEX.md`：复制到办公根后生效的入口模板，不包含真实画像。
 - [使用说明](../../../general-work/README.md)：整套复制、宿主加载与能力验证入口；原编程技能的安装路径不改变。
 
-五技能须整套配置并保留同级目录关系，默认目标为办公根 `.agents/skills/`；不能单装入口后遗失共享参考。工作区指令中的相对路径从办公根解析，技能引用从对应技能目录解析。
+六个技能须整套配置并保留同级目录关系，默认目标为办公根 `.agents/skills/`；不能单装入口后遗失共享参考。部署说明只由 `setup` 拥有，其他技能与工作区入口不复述初始化。工作区指令中的相对路径从办公根解析，技能引用从对应技能目录解析。
 
 ## 运行与验证
 
@@ -30,6 +30,7 @@ code-paths:
 
 - `general-work/skills/work/SKILL.md`
 - `general-work/skills/grill-me/SKILL.md`
+- `general-work/skills/setup/SKILL.md`
 - `general-work/skills/memory/references/context-model.md`
 - `general-work/workspace/AGENTS.md`
 - `general-work/test/skills.test.mjs`
