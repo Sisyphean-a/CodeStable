@@ -70,6 +70,36 @@ test("各技能从唯一协议读取用户知识，日常技能不调用初始�
   assert.match(text, /knowledge\/projects\//);
 });
 
+test("文档适配从共用协议按需到达，修复规则随技能安装", () => {
+  const maintenance = join(bundle, "skills", "memory", "references", "maintenance.md");
+  assert.ok(localTargets(protocol).includes(maintenance), "各技能共用的协议缺少维护入口");
+  assert.ok(existsSync(maintenance), "缺少维护分支规则");
+  assertLocalLinks(maintenance);
+  assert.equal(
+    markdownFiles(join(bundle, "skills")).filter((path) => localTargets(path).includes(maintenance)).length,
+    1,
+    "维护规则只从共用协议到达，不复制进每个技能",
+  );
+});
+
+test("工作约定有唯一归属与执行读取入口，不分发实际约定或宿主指令", () => {
+  const text = readFileSync(protocol, "utf8");
+  assert.equal([...text.matchAll(/^\| `working-rules\.md` \|/gm)].length, 1);
+  const entry = text.split(/## 唯一入口\r?\n/)[1].split(/\r?\n## /)[0];
+  assert.match(entry, /`working-rules\.md`/, "日常执行必须能找到工作约定");
+  const files = markdownFiles(join(bundle, "skills"));
+  assert.ok(files.every((path) => !/[\\/](?:working-rules|AGENTS|CLAUDE)\.md$/.test(path)));
+});
+
+test("旁观画像有独立数据归属和按需参考，不增加技能或分发真实画像", () => {
+  const observer = join(bundle, "skills", "memory", "references", "observer-model.md");
+  const text = readFileSync(protocol, "utf8");
+  assert.equal([...text.matchAll(/^\| `portrait\.md` \|/gm)].length, 1, "画像应有唯一归属");
+  assert.ok(localTargets(protocol).includes(observer), "协议应能到达画像分支规则");
+  assertLocalLinks(observer);
+  assert.equal(existsSync(join(bundle, "skills", "memory", "portrait.md")), false);
+});
+
 test("只安装技能目录即可解析全部参考，不预置用户数据", () => {
   const temporary = resolve(bundle, "../.tmp");
   mkdirSync(temporary, { recursive: true });
