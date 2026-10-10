@@ -75,6 +75,7 @@ cs web
 /skill:cs-feat 增加一个用户可见的筛选功能
 /skill:cs-issue 修复登录失败的问题
 /skill:cs-refactor 在不改变行为的前提下拆分这个模块
+/skill:cs-subtract 保持现行契约，精简这个模块中的无价值转发和冗余实现
 /skill:cs-explain 讲清一次请求从入口到回包怎么走
 /skill:cs-learn 带我学习这个请求全线路的实现
 /skill:cs-checkpoint save checkout-flow
@@ -92,7 +93,8 @@ cs web
 | `cs-goal` | 自动 | 把模糊产品想法或现有整体偏离感收敛成产品主线，不讨论实现或 UI 方案 |
 | `cs-feat` | 自动 | 实现明确能力与现行设计，或把目标型委托直接做成可观察结果 |
 | `cs-issue` | 自动 | 诊断并修复违反既定契约的错误 |
-| `cs-refactor` | 自动 | 在保持外部行为不变的前提下重构 |
+| `cs-refactor` | 自动 | 保持外部行为重构，以最小必要复杂度降低修改负担 |
+| `cs-subtract` | 自动 | 有证据地删除、合并和内联冗余实现，保留契约与必要保护 |
 | `cs-code-review` | 自动 | 对抗审查明确代码差异、分支或提交 |
 | `cs-domain` | 自动 | 把已确认的术语、规则、架构边界、决定和每轮必读规则写入唯一权威当前态 |
 | `cs-memory-guard` | 自动 | 发现确定的 `.codestable` 结构违规时，修复局部文档；语义冲突保留并报告 |

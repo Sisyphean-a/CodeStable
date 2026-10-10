@@ -17,7 +17,7 @@ code-paths:
 
 ## 职责地图
 
-- 任务分诊与交付：`cs`、`cs-feat`、`cs-issue`、`cs-refactor`、`cs-code-review`、`cs-audit`。
+- 任务分诊与交付：`cs`、`cs-feat`、`cs-issue`、`cs-refactor`、`cs-subtract`、`cs-code-review`、`cs-audit`。
 - 项目理解与读者文档：`cs-explain`、`cs-learn`、`cs-docs`。
 - 项目当前态：`cs-domain`、`cs-memory-guard`、`cs-onboard`、`cs-docs-neat`、`domain-modeling`。
 - 临时任务续接：`cs-checkpoint`。
@@ -45,7 +45,8 @@ code-paths:
 - `cs-checkpoint` 在 `.tmp/checkpoints/` 为多个大型任务维护命名的当前快照；只有一个时自动选择，完成即删，不进入项目记忆或默认工作集。
 - `grilling` 唯一定义设计树、轮次和前沿；调用它的技能只维护自身状态，不复制访谈算法。
 - `cs-issue` 默认走轻量修复；故障风险或记录价值需要更强证据时，才披露诊断循环。`cs-code-review` 分开判断项目标准与需求符合度；`cs-feat` 只在低成本稳定测试面存在时使用红绿垂直切片。
-- 模块边界发生变化时，`cs-feat`、`cs-refactor` 和 `cs-code-review` 按需使用 `skills/cs-refactor/references/module-depth.md`。
+- `cs-subtract` 拥有保持契约的专项代码减法；`cs-feat` 和 `cs-refactor` 只在当前改动内约束复杂度增长，不自动串联专项清理。减法的必要性调查与完成标准由 `skills/cs-subtract/SKILL.md` 定义。
+- 模块边界发生变化时，`cs-feat`、`cs-refactor`、`cs-subtract` 和 `cs-code-review` 按需使用 `skills/cs-refactor/references/module-depth.md`。
 
 ## 代码锚点
 
@@ -59,6 +60,7 @@ code-paths:
 - `skills/cs-domain/SKILL.md`
 - `skills/cs-memory-guard/SKILL.md`
 - `skills/cs-domain/references/memory-model.md`
+- `skills/cs-subtract/SKILL.md`
 - `skills/cs-refactor/references/module-depth.md`
 - `skills/cs-issue/SKILL.md`
 - `skills/cs-code-review/SKILL.md`
