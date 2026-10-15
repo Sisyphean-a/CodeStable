@@ -21,7 +21,7 @@ code-paths:
 - 项目理解与读者文档：`cs-explain`、`cs-learn`、`cs-docs`。
 - 项目当前态：`cs-domain`、`cs-memory-guard`、`cs-onboard`、`cs-docs-neat`、`domain-modeling`。
 - 临时任务续接：`cs-checkpoint`。
-- 目标与方案澄清：`cs-goal`、`cs-ui-design`、`grilling`、`grill-with-docs`。
+- 目标与方案澄清：`cs-goal`、`cs-ui-design`、`grilling`、`grill-with-docs`、`cs-req`。
 
 `cs`、`cs-onboard`、`cs-docs-neat`、`cs-checkpoint` 和 `grill-with-docs` 需要用户显式调用；其余技能可按请求自动选择。完整判定以各自的 `SKILL.md` frontmatter 为准。
 
@@ -42,6 +42,7 @@ code-paths:
 - `cs-domain` 的项目记忆规则唯一由 `skills/cs-domain/references/memory-model.md` 定义；`cs-memory-guard`、`cs-onboard`、`cs-goal` 和 `grill-with-docs` 按需引用它。
 - `cs-goal` 只把从零想法或现有整体偏离感收敛成已确认的产品主线，不产出解决方案、界面设计或代码；`cs-feat` 在用户要求直接交付时以内嵌 Goal Read 承接目标型委托，不自动串联 `cs-goal`，独立视觉方案仍由 `cs-ui-design` 拥有。
 - `cs-explain` 拥有当前项目的即时解释，并按问题选择文字、图、树、伪代码、diff 或临时 HTML；`cs-learn` 只在当前对话中用项目代码、测试和必要的一手资料带读并验证理解；`cs-docs` 仅在用户要求长期材料时按 `skills/cs-docs/references/flow-doc.md` 写独立读者流程文档。
+- `cs-req` 把规划中或已完成的需求整理成给非技术读者看的用户语需求文档；它是脱离项目记忆和其他文档的导出物，意图未定时先由 `cs-goal` 收敛，长期读者材料仍由 `cs-docs` 拥有。成文规则与完成门禁由 `skills/cs-req/SKILL.md` 定义。
 - `cs-checkpoint` 在 `.tmp/checkpoints/` 为多个大型任务维护命名的当前快照；只有一个时自动选择，完成即删，不进入项目记忆或默认工作集。
 - `grilling` 唯一定义设计树、轮次和前沿；调用它的技能只维护自身状态，不复制访谈算法。
 - `cs-issue` 默认走轻量修复；故障风险或记录价值需要更强证据时，才披露诊断循环。`cs-code-review` 分开判断项目标准与需求符合度；`cs-feat` 只在低成本稳定测试面存在时使用红绿垂直切片。
@@ -56,6 +57,7 @@ code-paths:
 - `skills/cs-learn/SKILL.md`
 - `skills/cs-docs/SKILL.md`
 - `skills/cs-docs/references/flow-doc.md`
+- `skills/cs-req/SKILL.md`
 - `skills/cs-checkpoint/SKILL.md`
 - `skills/cs-domain/SKILL.md`
 - `skills/cs-memory-guard/SKILL.md`
