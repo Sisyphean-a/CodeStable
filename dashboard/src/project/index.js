@@ -608,15 +608,13 @@ function parseHistoryEntry(source, raw, sequence, diagnostics) {
   const complete =
     result !== "" &&
     fields["范围"] !== "" &&
-    fields["原因"] !== "" &&
-    fields["当前依据"] !== "" &&
-    fields["证据"] !== "";
+    fields["原因"] !== "";
   if (!complete) {
     diagnostics.warning(
       DiagnosticCodes.HistoryFormat,
       source.id,
       { path: source.path, line: raw.startLine },
-      `历史条目缺少必填字段（范围/原因/当前依据/证据）: ${first.slice(0, 80)}`,
+      `历史条目缺少必填字段（结果/范围/原因）: ${first.slice(0, 80)}`,
     );
     return null;
   }

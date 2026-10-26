@@ -97,6 +97,45 @@ test("filters and theme do not change source facts or stable order", async (t) =
   );
 });
 
+test("history accepts omitted, independent, or empty optional references", async (t) => {
+  const root = await fixture();
+  t.after(() =>
+    rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }),
+  );
+  const variants = [
+    ["最小历史", "", []],
+    [
+      "仅关联规则",
+      "  当前依据：[架构索引](../architecture/INDEX.md)。\n",
+      ["current-basis"],
+    ],
+    ["仅来源", "  证据：提交 `1581e4b`。\n", ["evidence"]],
+    ["空可选字段", "  当前依据：\n  证据：\n", []],
+  ];
+  await writeFile(
+    join(root, ".codestable", "history", "2026-08.md"),
+    "# 2026-08\n\n" +
+      variants.map(([result, extra]) =>
+        `- 2026-08-03 · [演进] ${result}。范围：workspace\n` +
+        `  原因：保留会影响未来判断的变化原因。\n${extra}\n`,
+      ).join(""),
+  );
+  const result = historyProjection(await buildProjectIndex(root));
+
+  assert.equal(result.total, 5);
+  assert.equal(result.invalidCount, 0);
+  const entries = result.months[0].entries;
+  assert.equal(entries.length, variants.length);
+  for (const [i, entry] of entries.entries()) {
+    const [title, , kinds] = variants[i];
+    assert.equal(entry.result, `${title}。`);
+    assert.equal(entry.reason, "保留会影响未来判断的变化原因。");
+    assert.deepEqual(entry.chain.map((relation) => relation.kind), kinds);
+  }
+  assert.equal(entries[0].currentBasis.raw, "");
+  assert.equal(entries[0].evidence.raw, "");
+});
+
 test("malformed history lines are not counted and stay locatable", async (t) => {
   const root = await fixture();
   t.after(() =>
@@ -104,17 +143,22 @@ test("malformed history lines are not counted and stay locatable", async (t) => 
   );
   await writeFile(
     join(root, ".codestable", "history", "2026-08.md"),
-    `# 2026-08\n\n${ENTRY("2026-08-01")}\n- 2026-08-05 · [坏标签] Broken\n- 2026-08-06 · [功能] Missing fields\n`,
+    `# 2026-08\n\n${ENTRY("2026-08-01")}\n` +
+      "- 2026-08-05 · [坏标签] Broken\n" +
+      "- 2026-08-06 · [功能] Missing range\n  原因：reason\n" +
+      "- 2026-08-07 · [功能] Missing reason。范围：workspace\n" +
+      "- 2026-08-08 · [功能] Empty reason。范围：workspace\n  原因：\n" +
+      "- 2026-08-09 · [功能] 范围：workspace\n  原因：reason\n",
   );
   const index = await buildProjectIndex(root);
   const result = historyProjection(index, {});
 
   assert.equal(result.total, 2); // 2026-07 一条有效 + 2026-08 一条有效
-  assert.equal(result.invalidCount, 2);
+  assert.equal(result.invalidCount, 5);
   const diagnostics = index.diagnostics.filter(
     (diagnostic) => diagnostic.code === "history-format",
   );
-  assert.equal(diagnostics.length, 2);
+  assert.equal(diagnostics.length, 5);
   assert.ok(
     diagnostics.every(
       (diagnostic) => diagnostic.location.path === ".codestable/history/2026-08.md",
@@ -169,6 +213,10 @@ test("evolution chain carries typed edges; git evidence is typed, not a second t
 
 test("history API serves the timeline with filters over HTTP", async (t) => {
   const root = await fixture();
+  await writeFile(
+    join(root, ".codestable", "history", "2026-09.md"),
+    "# 2026-09\n\n- 2026-09-01 · [演进] 紧凑历史。范围：workspace\n  原因：按需保留关联来源。\n",
+  );
   const dashboard = await startDashboard(root, {
     openBrowser: false,
     port: 0,
@@ -186,8 +234,9 @@ test("history API serves the timeline with filters over HTTP", async (t) => {
   const all = await fetch(`${dashboard.address}/api/history`, {
     signal: AbortSignal.timeout(5000),
   }).then((response) => response.json());
-  assert.equal(all.total, 4);
-  assert.equal(all.months.length, 2);
+  assert.equal(all.total, 5);
+  assert.equal(all.months.length, 3);
+  assert.equal(all.months[0].entries[0].result, "紧凑历史。");
 
   const filtered = await fetch(
     `${dashboard.address}/api/history?filters=${encodeURIComponent("tag:缺陷")}`,
